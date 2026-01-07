@@ -20,7 +20,7 @@ WINE_VERSION="11.0-rc4"
 WINE_URL="https://github.com/Gcenx/macOS_Wine_builds/releases/download/${WINE_VERSION}/wine-staging-${WINE_VERSION}-osx64.tar.xz"
 
 echo "============================================"
-echo "Gcenx Wine-Staging → Soju 패키징"
+echo "Gcenx Wine-Staging → PodoSoju 패키징"
 echo "============================================"
 echo ""
 
@@ -52,22 +52,22 @@ echo "Wine 버전: $WINE_VERSION"
 
 # 출력 디렉토리 생성
 rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR/Libraries/Wine"
+mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju"
 
 echo ""
 echo "[1/4] Gcenx Wine 복사..."
-cp -R "$GCENX_WINE/bin" "$OUTPUT_DIR/Libraries/Wine/"
-cp -R "$GCENX_WINE/lib" "$OUTPUT_DIR/Libraries/Wine/"
-cp -R "$GCENX_WINE/share" "$OUTPUT_DIR/Libraries/Wine/"
+cp -R "$GCENX_WINE/bin" "$OUTPUT_DIR/Libraries/PodoSoju/"
+cp -R "$GCENX_WINE/lib" "$OUTPUT_DIR/Libraries/PodoSoju/"
+cp -R "$GCENX_WINE/share" "$OUTPUT_DIR/Libraries/PodoSoju/"
 
 # 실행 권한 확인
-chmod +x "$OUTPUT_DIR/Libraries/Wine/bin/"*
+chmod +x "$OUTPUT_DIR/Libraries/PodoSoju/bin/"*
 
 echo "[2/4] D3DMetal 복사 (GPTK)..."
 if [ -d "$GPTK_WINE/lib/external/D3DMetal.framework" ]; then
-    mkdir -p "$OUTPUT_DIR/Libraries/Wine/lib/external"
-    cp -R "$GPTK_WINE/lib/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/Wine/lib/external/"
-    cp "$GPTK_WINE/lib/external/libd3dshared.dylib" "$OUTPUT_DIR/Libraries/Wine/lib/external/" 2>/dev/null || true
+    mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/lib/external"
+    cp -R "$GPTK_WINE/lib/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/PodoSoju/lib/external/"
+    cp "$GPTK_WINE/lib/external/libd3dshared.dylib" "$OUTPUT_DIR/Libraries/PodoSoju/lib/external/" 2>/dev/null || true
     echo "  D3DMetal 추가됨"
 else
     echo "  D3DMetal 없음 (GPTK 미설치)"
@@ -86,10 +86,10 @@ BUILD=$(echo "$WINE_VER_RAW" | grep -i staging >/dev/null && echo "staging" || e
 # patch는 항상 0 (rc는 preRelease로 표현)
 PATCH="0"
 
-echo "  SojuWine 버전: $MAJOR.$MINOR-$PRERELEASE ($BUILD)"
+echo "  PodoSoju 버전: $MAJOR.$MINOR-$PRERELEASE ($BUILD)"
 
-# SojuWineVersion.plist 생성 (SemanticVersion 형식)
-cat > "$OUTPUT_DIR/Libraries/SojuWineVersion.plist" << PLIST
+# PodoSojuVersion.plist 생성 (SemanticVersion 형식)
+cat > "$OUTPUT_DIR/Libraries/PodoSojuVersion.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -115,9 +115,9 @@ echo "[4/4] tarball 생성..."
 cd "$OUTPUT_DIR"
 # 버전명: 11.0-rc4 형식
 if [ -n "$PRERELEASE" ]; then
-    TARBALL_NAME="SojuWine-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
+    TARBALL_NAME="PodoSoju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
 else
-    TARBALL_NAME="SojuWine-${MAJOR}.${MINOR}.${PATCH}.tar.gz"
+    TARBALL_NAME="PodoSoju-${MAJOR}.${MINOR}.${PATCH}.tar.gz"
 fi
 tar -czf "$TARBALL_NAME" Libraries
 rm -rf Libraries
