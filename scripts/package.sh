@@ -63,7 +63,19 @@ cp -R "$GCENX_WINE/share" "$OUTPUT_DIR/Libraries/PodoSoju/"
 # 실행 권한 확인
 chmod +x "$OUTPUT_DIR/Libraries/PodoSoju/bin/"*
 
-echo "[2/4] D3DMetal 복사 (GPTK)..."
+echo "[2/5] CJK 폰트 복사..."
+FONTS_DIR="$WINE_ROOT/fonts"
+if [ -d "$FONTS_DIR" ]; then
+    mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts"
+    cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
+    cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
+    cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
+    echo "  CJK 폰트 추가됨"
+else
+    echo "  fonts 폴더 없음"
+fi
+
+echo "[3/5] D3DMetal 복사 (GPTK)..."
 if [ -d "$GPTK_WINE/lib/external/D3DMetal.framework" ]; then
     mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/lib/external"
     cp -R "$GPTK_WINE/lib/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/PodoSoju/lib/external/"
@@ -73,7 +85,7 @@ else
     echo "  D3DMetal 없음 (GPTK 미설치)"
 fi
 
-echo "[3/4] 버전 정보 생성..."
+echo "[4/5] 버전 정보 생성..."
 # Wine 버전 파싱 (예: wine-11.0-rc4 (Staging) → 11.0.0-rc4+staging)
 WINE_VER_RAW=$(arch -x86_64 "$GCENX_WINE/bin/wine" --version 2>/dev/null)
 # wine-11.0-rc4 (Staging) 형식 파싱
@@ -111,7 +123,7 @@ cat > "$OUTPUT_DIR/Libraries/PodoSojuVersion.plist" << PLIST
 </plist>
 PLIST
 
-echo "[4/4] tarball 생성..."
+echo "[5/5] tarball 생성..."
 cd "$OUTPUT_DIR"
 # 버전명: 11.0-rc4 형식
 if [ -n "$PRERELEASE" ]; then
