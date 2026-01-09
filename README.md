@@ -89,4 +89,5 @@ D3DMetal is not included due to licensing. Users can install Apple's Game Portin
 - [Gcenx Wine Builds](https://github.com/Gcenx/macOS_Wine_builds)
 - [DXMT](https://github.com/3Shain/dxmt)
 - [DXVK](https://github.com/doitsujin/dxvk)
+- [Whisky](https://github.com/Whisky-App/Whisky)
 - [PodoSoju App](https://github.com/PodoSoju/app)
