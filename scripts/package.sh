@@ -1,10 +1,10 @@
 #!/bin/bash
-# Gcenx Wine-Staging을 Soju용으로 패키징 (멱등성)
+# Gcenx Wine-Staging for Soju packaging (idempotent)
 #
-# 사용법:
+# Usage:
 #   ./scripts/package.sh
 #
-# 자동으로 다운로드, 압축해제, 패키징까지 수행
+# Automatically download, extract, and package
 #
 set -e
 
@@ -15,92 +15,92 @@ GCENX_WINE="$WINE_STAGING_DIR/Contents/Resources/wine"
 GPTK_WINE="/Applications/Game Porting Toolkit.app/Contents/Resources/wine"
 OUTPUT_DIR="$WINE_ROOT/dist"
 
-# Wine-Staging 버전 설정
+# Wine-Staging Version config
 WINE_VERSION="11.0-rc4"
 WINE_URL="https://github.com/Gcenx/macOS_Wine_builds/releases/download/${WINE_VERSION}/wine-staging-${WINE_VERSION}-osx64.tar.xz"
 
 echo "============================================"
-echo "Gcenx Wine-Staging → Soju 패키징"
+echo "Gcenx Wine-Staging → Soju Packaging"
 echo "============================================"
 echo ""
 
-# Gcenx Wine 다운로드 (없으면)
+# Gcenx Wine download (if not exists)
 if [ ! -f "$GCENX_WINE/bin/wine" ]; then
-    echo "[0/4] Wine-Staging ${WINE_VERSION} 다운로드 중..."
+    echo "[0/4] Wine-Staging ${WINE_VERSION} downloading..."
 
-    # 다운로드
+    # download
     curl -L -o /tmp/wine-staging.tar.xz "$WINE_URL"
 
-    # 압축 해제
+    # Extract
     rm -rf "$WINE_STAGING_DIR"
     mkdir -p "$WINE_STAGING_DIR"
     tar -xJf /tmp/wine-staging.tar.xz -C "$WINE_STAGING_DIR" --strip-components=1
 
-    # 실행 권한
+    # Execution permission
     chmod +x "$GCENX_WINE/bin/"*
     chmod +x "$WINE_STAGING_DIR/Contents/MacOS/"* 2>/dev/null || true
 
-    # 정리
+    # Cleanup
     rm -f /tmp/wine-staging.tar.xz
-    echo "  다운로드 완료!"
+    echo "  Download complete!"
     echo ""
 fi
 
-# Wine 버전 확인
+# Wine version check
 WINE_VERSION=$(arch -x86_64 "$GCENX_WINE/bin/wine" --version 2>/dev/null | head -1)
-echo "Wine 버전: $WINE_VERSION"
+echo "Wine version: $WINE_VERSION"
 
-# 출력 디렉토리 생성
+# Create output directory
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR/Libraries/Soju"
 
 echo ""
-echo "[1/4] Gcenx Wine 복사..."
+echo "[1/4] Gcenx Wine copying..."
 cp -R "$GCENX_WINE/bin" "$OUTPUT_DIR/Libraries/Soju/"
 cp -R "$GCENX_WINE/lib" "$OUTPUT_DIR/Libraries/Soju/"
 cp -R "$GCENX_WINE/share" "$OUTPUT_DIR/Libraries/Soju/"
 
-# 실행 권한 확인
+# Execution permission check
 chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/"*
 
-echo "[2/5] CJK 폰트 복사..."
+echo "[2/5] CJK fonts copying..."
 FONTS_DIR="$WINE_ROOT/fonts"
 if [ -d "$FONTS_DIR" ]; then
     mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts"
     cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
     cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
     cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
-    echo "  CJK 폰트 추가됨"
+    echo "  CJK fonts added"
 else
-    echo "  fonts 폴더 없음"
+    echo "  fonts folder not found"
 fi
 
-echo "[3/5] D3DMetal 복사 (GPTK)..."
+echo "[3/5] D3DMetal copy (GPTK)..."
 if [ -d "$GPTK_WINE/lib/external/D3DMetal.framework" ]; then
     mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/external"
     cp -R "$GPTK_WINE/lib/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/Soju/lib/external/"
     cp "$GPTK_WINE/lib/external/libd3dshared.dylib" "$OUTPUT_DIR/Libraries/Soju/lib/external/" 2>/dev/null || true
-    echo "  D3DMetal 추가됨"
+    echo "  D3DMetal added"
 else
-    echo "  D3DMetal 없음 (GPTK 미설치)"
+    echo "  D3DMetal not found (GPTK not installed)"
 fi
 
-echo "[4/5] 버전 정보 생성..."
-# Wine 버전 파싱 (예: wine-11.0-rc4 (Staging) → 11.0.0-rc4+staging)
+echo "[4/5] Generate version info..."
+# Wine version parsing (e.g. wine-11.0-rc4 (Staging) → 11.0.0-rc4+staging)
 WINE_VER_RAW=$(arch -x86_64 "$GCENX_WINE/bin/wine" --version 2>/dev/null)
-# wine-11.0-rc4 (Staging) 형식 파싱
+# wine-11.0-rc4 (Staging) format parsing
 MAJOR=$(echo "$WINE_VER_RAW" | sed -E 's/wine-([0-9]+)\..*/\1/')
 MINOR=$(echo "$WINE_VER_RAW" | sed -E 's/wine-[0-9]+\.([0-9]+).*/\1/')
-# rc 버전 추출 (없으면 빈 문자열)
+# rc version extract (empty string if not found)
 PRERELEASE=$(echo "$WINE_VER_RAW" | sed -E 's/.*-(rc[0-9]+).*/\1/' | grep -E '^rc' || echo "")
-# Staging 여부
+# Staging check
 BUILD=$(echo "$WINE_VER_RAW" | grep -i staging >/dev/null && echo "staging" || echo "")
-# patch는 항상 0 (rc는 preRelease로 표현)
+# patch is always 0 (rc is in preRelease)
 PATCH="0"
 
-echo "  Soju 버전: $MAJOR.$MINOR-$PRERELEASE ($BUILD)"
+echo "  Soju version: $MAJOR.$MINOR-$PRERELEASE ($BUILD)"
 
-# SojuVersion.plist 생성 (SemanticVersion 형식)
+# SojuVersion.plist generate (SemanticVersion format)
 cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -123,9 +123,9 @@ cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
 </plist>
 PLIST
 
-echo "[5/5] tarball 생성..."
+echo "[5/5] tarball generating..."
 cd "$OUTPUT_DIR"
-# 버전명: 11.0-rc4 형식
+# version name: 11.0-rc4 format
 if [ -n "$PRERELEASE" ]; then
     TARBALL_NAME="Soju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
 else
@@ -136,8 +136,5 @@ rm -rf Libraries
 
 echo ""
 echo "============================================"
-echo "완료: $OUTPUT_DIR/$TARBALL_NAME"
+echo "Done: $OUTPUT_DIR/$TARBALL_NAME"
 echo "============================================"
-echo ""
-echo "설치:"
-echo "  tar -xzf $TARBALL_NAME -C ~/Library/Application\ Support/com.isaacmarovitz.Whisky/"

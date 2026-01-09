@@ -1,14 +1,14 @@
 #!/bin/bash
-# Soju CI 빌드 스크립트
-# Wine + DXMT + DXVK + CJK 폰트 패키징
+# Soju CI build script
+# Wine + DXMT + DXVK + CJK fonts packaging
 #
-# 사용법:
+# Usage:
 #   ./scripts/build-ci.sh [version]
 #
-# 환경변수:
-#   WINE_VERSION - Wine-Staging 버전 (기본값: 11.0-rc4)
-#   DXMT_VERSION - DXMT 버전 (기본값: v0.72)
-#   DXVK_VERSION - DXVK 버전 (기본값: v2.7.1)
+# Environment variables:
+#   WINE_VERSION - Wine-Staging version (default: 11.0-rc4)
+#   DXMT_VERSION - DXMT version (default: v0.72)
+#   DXVK_VERSION - DXVK version (default: v2.7.1)
 #
 set -euo pipefail
 
@@ -16,22 +16,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 OUTPUT_DIR="$PROJECT_ROOT/dist"
 
-# 버전 설정
+# Version config
 WINE_VERSION="${WINE_VERSION:-11.0-rc4}"
 DXMT_VERSION="${DXMT_VERSION:-v0.72}"
 DXVK_VERSION="${DXVK_VERSION:-v2.7.1}"
 
-# 다운로드 URL
+# Download URLs
 WINE_URL="https://github.com/Gcenx/macOS_Wine_builds/releases/download/${WINE_VERSION}/wine-staging-${WINE_VERSION}-osx64.tar.xz"
 DXMT_URL="https://github.com/3Shain/dxmt/releases/download/${DXMT_VERSION}/dxmt-${DXMT_VERSION}-builtin.tar.gz"
 DXVK_URL="https://github.com/doitsujin/dxvk/releases/download/${DXVK_VERSION}/dxvk-${DXVK_VERSION#v}.tar.gz"
 
-# 임시 디렉토리
+# Temp directory
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 echo "============================================"
-echo "Soju CI 빌드"
+echo "Soju CI Build"
 echo "============================================"
 echo "Wine:  ${WINE_VERSION}"
 echo "DXMT:  ${DXMT_VERSION}"
@@ -39,75 +39,75 @@ echo "DXVK:  ${DXVK_VERSION}"
 echo "============================================"
 echo ""
 
-# 출력 디렉토리 생성
+# Create output directory
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR/Libraries/Soju"
 
-# [1/5] Wine-Staging 다운로드
-echo "[1/5] Wine-Staging ${WINE_VERSION} 다운로드..."
+# [1/5] Wine-Staging download
+echo "[1/5] Wine-Staging ${WINE_VERSION} downloading..."
 curl -fsSL -o "$TEMP_DIR/wine.tar.xz" "$WINE_URL"
 mkdir -p "$TEMP_DIR/wine"
 tar -xJf "$TEMP_DIR/wine.tar.xz" -C "$TEMP_DIR/wine" --strip-components=1
 WINE_SOURCE="$TEMP_DIR/wine/Contents/Resources/wine"
 
-# Wine 복사
+# Wine copy
 cp -R "$WINE_SOURCE/bin" "$OUTPUT_DIR/Libraries/Soju/"
 cp -R "$WINE_SOURCE/lib" "$OUTPUT_DIR/Libraries/Soju/"
 cp -R "$WINE_SOURCE/share" "$OUTPUT_DIR/Libraries/Soju/"
 chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/"*
-echo "  Wine 복사 완료"
+echo "  Wine copy complete"
 
-# [2/5] DXMT 다운로드 및 통합
-echo "[2/5] DXMT ${DXMT_VERSION} 다운로드..."
+# [2/5] DXMT download and integrate
+echo "[2/5] DXMT ${DXMT_VERSION} downloading..."
 curl -fsSL -o "$TEMP_DIR/dxmt.tar.gz" "$DXMT_URL"
 mkdir -p "$TEMP_DIR/dxmt"
 tar -xzf "$TEMP_DIR/dxmt.tar.gz" -C "$TEMP_DIR/dxmt"
 
-# DXMT DLL 복사 (x64용)
+# DXMT DLL copy (x64)
 mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows"
 if [ -d "$TEMP_DIR/dxmt/x64" ]; then
     cp "$TEMP_DIR/dxmt/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
 fi
-echo "  DXMT 통합 완료"
+echo "  DXMT integrated"
 
-# [3/5] DXVK 다운로드 및 통합
-echo "[3/5] DXVK ${DXVK_VERSION} 다운로드..."
+# [3/5] DXVK download and integrate
+echo "[3/5] DXVK ${DXVK_VERSION} downloading..."
 curl -fsSL -o "$TEMP_DIR/dxvk.tar.gz" "$DXVK_URL"
 mkdir -p "$TEMP_DIR/dxvk"
 tar -xzf "$TEMP_DIR/dxvk.tar.gz" -C "$TEMP_DIR/dxvk" --strip-components=1
 
-# DXVK DLL 복사 (x64용)
+# DXVK DLL copy (x64)
 if [ -d "$TEMP_DIR/dxvk/x64" ]; then
     cp "$TEMP_DIR/dxvk/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
 fi
-echo "  DXVK 통합 완료"
+echo "  DXVK integrated"
 
-# [4/5] CJK 폰트 복사
-echo "[4/5] CJK 폰트 복사..."
+# [4/5] Copy CJK fonts
+echo "[4/5] Copy CJK fonts..."
 FONTS_DIR="$PROJECT_ROOT/fonts"
 if [ -d "$FONTS_DIR" ]; then
     mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts"
     cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
     cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
     cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
-    echo "  CJK 폰트 추가됨"
+    echo "  CJK fonts added"
 else
-    echo "  fonts 폴더 없음 (스킵)"
+    echo "  fonts folder not found (skipped)"
 fi
 
-# [5/5] 버전 정보 및 tarball 생성
-echo "[5/5] 버전 정보 생성..."
+# [5/5] Generate version info and tarball
+echo "[5/5] Generate version info..."
 
-# Wine 버전 파싱
+# Parse Wine version
 MAJOR=$(echo "$WINE_VERSION" | sed -E 's/([0-9]+)\..*/\1/')
 MINOR=$(echo "$WINE_VERSION" | sed -E 's/[0-9]+\.([0-9]+).*/\1/')
 PRERELEASE=$(echo "$WINE_VERSION" | sed -E 's/.*-(rc[0-9]+).*/\1/' | grep -E '^rc' || echo "")
 BUILD="staging"
 PATCH="0"
 
-echo "  버전: $MAJOR.$MINOR${PRERELEASE:+-$PRERELEASE} ($BUILD)"
+echo "  version: $MAJOR.$MINOR${PRERELEASE:+-$PRERELEASE} ($BUILD)"
 
-# SojuVersion.plist 생성
+# Generate SojuVersion.plist
 cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -139,7 +139,7 @@ cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
 </plist>
 PLIST
 
-# tarball 생성
+# Generate tarball
 cd "$OUTPUT_DIR"
 if [ -n "$PRERELEASE" ]; then
     TARBALL_NAME="Soju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
@@ -148,23 +148,23 @@ else
 fi
 tar -czf "$TARBALL_NAME" Libraries
 
-# Libraries 디렉토리 정리 (tarball만 남김)
+# Libraries cleanup (keep only tarball)
 rm -rf Libraries
 
 echo ""
 echo "============================================"
-echo "빌드 완료!"
+echo "Build complete!"
 echo "============================================"
-echo "출력: $OUTPUT_DIR/$TARBALL_NAME"
+echo "Output: $OUTPUT_DIR/$TARBALL_NAME"
 echo ""
-echo "포함 구성요소:"
+echo "Included components:"
 echo "  - Wine-Staging ${WINE_VERSION}"
-echo "  - DXMT ${DXMT_VERSION} (MIT 라이선스)"
-echo "  - DXVK ${DXVK_VERSION} (zlib 라이선스)"
-echo "  - CJK 폰트"
+echo "  - DXMT ${DXMT_VERSION} (MIT license)"
+echo "  - DXVK ${DXVK_VERSION} (zlib license)"
+echo "  - CJK fonts"
 echo "============================================"
 
-# GitHub Actions 출력
+# GitHub Actions output
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "tarball_name=$TARBALL_NAME" >> "$GITHUB_OUTPUT"
     echo "tarball_path=$OUTPUT_DIR/$TARBALL_NAME" >> "$GITHUB_OUTPUT"
