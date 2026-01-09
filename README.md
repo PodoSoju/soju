@@ -1,96 +1,92 @@
-# Podo-Soju
+# PodoSoju
 
-**Soju-Wine 11.0-rc4 패키징 저장소**
+**Wine distribution for Soju app**
 
-Gcenx Wine-Staging 11.0-rc4 + Apple D3DMetal을 Whisky 호환 tarball로 패키징하는 자동화 스크립트
+Wine-Staging with DXMT and DXVK for macOS, packaged for the [Soju](https://github.com/yejune/soju) Windows app launcher.
 
-## 소개
+## Features
 
-Soju-Wine은 다음을 통합합니다:
+- **Wine-Staging 11.0-rc4** (Gcenx macOS build)
+- **DXMT** - DirectX 10/11 to Metal translation (MIT license)
+- **DXVK** - DirectX 9-11 to Vulkan/MoltenVK translation
+- **CJK Fonts** - Korean, Japanese, Chinese font support
 
-- **Wine-Staging 11.0-rc4** (Gcenx macOS 빌드)
-- **D3DMetal** (Apple Game Porting Toolkit의 Metal 기반 Direct3D 구현)
-- **Whisky 호환 구조** (SemanticVersion 메타데이터 포함)
+## Installation
 
-## 빌드 방법
+PodoSoju is automatically downloaded by the Soju app on first launch. No manual installation required.
 
-### 사전 요구사항
+### Manual Download
 
-- macOS (Intel 또는 Apple Silicon)
-- Xcode Command Line Tools
-- Apple Game Porting Toolkit (D3DMetal 필요 시)
-
-### 빌드 실행
+Download from [GitHub Releases](https://github.com/yejune/podo-soju/releases/latest).
 
 ```bash
-# 저장소 클론
+# Extract to Soju's Libraries directory
+tar -xzf PodoSoju-*.tar.gz -C ~/Library/Application\ Support/com.soju.app/
+```
+
+## Building
+
+### Prerequisites
+
+- macOS (Apple Silicon or Intel)
+- Xcode Command Line Tools
+
+### Build Script
+
+```bash
 git clone https://github.com/yejune/podo-soju.git
 cd podo-soju
-
-# 패키징 스크립트 실행
 ./scripts/package.sh
 ```
 
-스크립트는 자동으로:
-1. Wine-Staging 11.0-rc4 다운로드 (없을 경우)
-2. Gcenx Wine 바이너리 복사
-3. D3DMetal 프레임워크 통합 (GPTK 설치 시)
-4. SojuWineVersion.plist 생성 (버전 메타데이터)
-5. tarball 생성: `dist/SojuWine-11.0-rc4.tar.gz`
+The script will:
+1. Download Wine-Staging from Gcenx
+2. Download DXMT and DXVK
+3. Bundle CJK fonts
+4. Create tarball in `dist/`
 
-## 설치 방법
+### GitHub Actions
 
-### Whisky에 설치
-
-```bash
-# tarball 압축 해제
-tar -xzf dist/SojuWine-11.0-rc4.tar.gz -C ~/Library/Application\ Support/com.isaacmarovitz.Whisky/
-
-# Whisky 재시작
-# 설정 → Wine 버전에서 "Soju-Wine 11.0-rc4" 선택
-```
-
-### 수동 설치 (테스트용)
+Releases are automatically built when a version tag is pushed:
 
 ```bash
-# 특정 디렉토리에 압축 해제
-tar -xzf dist/SojuWine-11.0-rc4.tar.gz -C /path/to/install
-
-# Wine 실행 테스트
-/path/to/install/Libraries/Wine/bin/wine --version
+git tag v11.0-rc4
+git push origin v11.0-rc4
 ```
 
-## 빌드 구조
+## Package Structure
 
 ```
-dist/
-└── SojuWine-11.0-rc4.tar.gz
-    └── Libraries/
-        ├── SojuWineVersion.plist       # 버전 메타데이터
-        └── Wine/
-            ├── bin/                     # wine, wineserver 등
-            ├── lib/
-            │   ├── wine/                # Wine 라이브러리
-            │   └── external/
-            │       ├── D3DMetal.framework
-            │       └── libd3dshared.dylib
-            └── share/                   # Wine 리소스
+Libraries/
+├── PodoSoju/
+│   ├── bin/           # wine, wineserver, etc.
+│   ├── lib/
+│   │   ├── wine/      # Wine libraries
+│   │   └── external/  # DXMT, DXVK
+│   └── share/         # Resources, fonts
+└── PodoSojuVersion.plist
 ```
 
-## 버전 정보
+## Graphics Backends
 
-- **Wine 버전**: 11.0-rc4 (Staging)
-- **D3DMetal**: Apple GPTK (설치 시)
-- **플랫폼**: macOS x86_64 (Rosetta 2 지원)
+| Backend | DirectX Support | License |
+|---------|-----------------|---------|
+| DXMT | DX10, DX11 | MIT |
+| DXVK | DX9, DX10, DX11 | zlib |
+| D3DMetal | DX11, DX12 | Apple (requires GPTK) |
 
-## 라이선스
+D3DMetal is not included due to licensing. Users can install Apple's Game Porting Toolkit separately for DX12 support.
+
+## License
 
 - Wine: LGPL 2.1+
-- D3DMetal: Apple GPTK 라이선스
-- 이 스크립트: MIT
+- DXMT: MIT
+- DXVK: zlib
+- Packaging scripts: MIT
 
-## 참고
+## References
 
-- [Gcenx Wine 빌드](https://github.com/Gcenx/macOS_Wine_builds)
-- [Whisky](https://github.com/Whisky-App/Whisky)
-- [Apple Game Porting Toolkit](https://developer.apple.com/games/)
+- [Gcenx Wine Builds](https://github.com/Gcenx/macOS_Wine_builds)
+- [DXMT](https://github.com/3Shain/dxmt)
+- [DXVK](https://github.com/doitsujin/dxvk)
+- [Soju App](https://github.com/yejune/soju)
