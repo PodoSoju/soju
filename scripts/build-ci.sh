@@ -1,5 +1,5 @@
 #!/bin/bash
-# PodoSoju CI 빌드 스크립트
+# Soju CI 빌드 스크립트
 # Wine + DXMT + DXVK + CJK 폰트 패키징
 #
 # 사용법:
@@ -31,7 +31,7 @@ TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 echo "============================================"
-echo "PodoSoju CI 빌드"
+echo "Soju CI 빌드"
 echo "============================================"
 echo "Wine:  ${WINE_VERSION}"
 echo "DXMT:  ${DXMT_VERSION}"
@@ -41,7 +41,7 @@ echo ""
 
 # 출력 디렉토리 생성
 rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju"
+mkdir -p "$OUTPUT_DIR/Libraries/Soju"
 
 # [1/5] Wine-Staging 다운로드
 echo "[1/5] Wine-Staging ${WINE_VERSION} 다운로드..."
@@ -51,10 +51,10 @@ tar -xJf "$TEMP_DIR/wine.tar.xz" -C "$TEMP_DIR/wine" --strip-components=1
 WINE_SOURCE="$TEMP_DIR/wine/Contents/Resources/wine"
 
 # Wine 복사
-cp -R "$WINE_SOURCE/bin" "$OUTPUT_DIR/Libraries/PodoSoju/"
-cp -R "$WINE_SOURCE/lib" "$OUTPUT_DIR/Libraries/PodoSoju/"
-cp -R "$WINE_SOURCE/share" "$OUTPUT_DIR/Libraries/PodoSoju/"
-chmod +x "$OUTPUT_DIR/Libraries/PodoSoju/bin/"*
+cp -R "$WINE_SOURCE/bin" "$OUTPUT_DIR/Libraries/Soju/"
+cp -R "$WINE_SOURCE/lib" "$OUTPUT_DIR/Libraries/Soju/"
+cp -R "$WINE_SOURCE/share" "$OUTPUT_DIR/Libraries/Soju/"
+chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/"*
 echo "  Wine 복사 완료"
 
 # [2/5] DXMT 다운로드 및 통합
@@ -64,9 +64,9 @@ mkdir -p "$TEMP_DIR/dxmt"
 tar -xzf "$TEMP_DIR/dxmt.tar.gz" -C "$TEMP_DIR/dxmt"
 
 # DXMT DLL 복사 (x64용)
-mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/lib/wine/x86_64-windows"
+mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows"
 if [ -d "$TEMP_DIR/dxmt/x64" ]; then
-    cp "$TEMP_DIR/dxmt/x64/"*.dll "$OUTPUT_DIR/Libraries/PodoSoju/lib/wine/x86_64-windows/" 2>/dev/null || true
+    cp "$TEMP_DIR/dxmt/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
 fi
 echo "  DXMT 통합 완료"
 
@@ -78,7 +78,7 @@ tar -xzf "$TEMP_DIR/dxvk.tar.gz" -C "$TEMP_DIR/dxvk" --strip-components=1
 
 # DXVK DLL 복사 (x64용)
 if [ -d "$TEMP_DIR/dxvk/x64" ]; then
-    cp "$TEMP_DIR/dxvk/x64/"*.dll "$OUTPUT_DIR/Libraries/PodoSoju/lib/wine/x86_64-windows/" 2>/dev/null || true
+    cp "$TEMP_DIR/dxvk/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
 fi
 echo "  DXVK 통합 완료"
 
@@ -86,10 +86,10 @@ echo "  DXVK 통합 완료"
 echo "[4/5] CJK 폰트 복사..."
 FONTS_DIR="$PROJECT_ROOT/fonts"
 if [ -d "$FONTS_DIR" ]; then
-    mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts"
-    cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
-    cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
-    cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
+    mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts"
+    cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+    cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+    cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
     echo "  CJK 폰트 추가됨"
 else
     echo "  fonts 폴더 없음 (스킵)"
@@ -107,8 +107,8 @@ PATCH="0"
 
 echo "  버전: $MAJOR.$MINOR${PRERELEASE:+-$PRERELEASE} ($BUILD)"
 
-# PodoSojuVersion.plist 생성
-cat > "$OUTPUT_DIR/Libraries/PodoSojuVersion.plist" << PLIST
+# SojuVersion.plist 생성
+cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -142,9 +142,9 @@ PLIST
 # tarball 생성
 cd "$OUTPUT_DIR"
 if [ -n "$PRERELEASE" ]; then
-    TARBALL_NAME="PodoSoju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
+    TARBALL_NAME="Soju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
 else
-    TARBALL_NAME="PodoSoju-${MAJOR}.${MINOR}.${PATCH}.tar.gz"
+    TARBALL_NAME="Soju-${MAJOR}.${MINOR}.${PATCH}.tar.gz"
 fi
 tar -czf "$TARBALL_NAME" Libraries
 

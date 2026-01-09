@@ -1,4 +1,4 @@
-name: Build and Release PodoSoju
+name: Build and Release Soju
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   build:
-    name: Build PodoSoju
+    name: Build Soju
     runs-on: macos-14
 
     steps:
@@ -21,7 +21,7 @@ jobs:
         with:
           lfs: true
 
-      - name: Build PodoSoju
+      - name: Build Soju
         id: build
         run: make build
 
@@ -31,7 +31,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: podosoju-build
+          name: soju-build
           path: dist/*.tar.gz
           retention-days: 1
 
@@ -49,7 +49,7 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: podosoju-build
+          name: soju-build
           path: dist/
 
       - name: Get release version
@@ -76,7 +76,7 @@ jobs:
 
             ### 설치 방법
             ```bash
-            tar -xzf PodoSoju-*.tar.gz -C ~/Library/Application\ Support/com.isaacmarovitz.Whisky/
+            tar -xzf Soju-*.tar.gz -C ~/Library/Application\ Support/com.isaacmarovitz.Whisky/
             ```
 
             Whisky를 재시작한 후 설정에서 "PodoSoju" Wine 버전을 선택하세요.

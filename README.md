@@ -13,7 +13,7 @@ Wine-Staging with DXMT and DXVK for macOS. This Wine distribution is used by the
 
 ## Installation
 
-PodoSoju is automatically downloaded by the PodoSoju app on first launch. No manual installation required.
+Soju is automatically downloaded by the PodoSoju app on first launch. No manual installation required.
 
 ### Manual Download
 
@@ -21,7 +21,7 @@ Download from [GitHub Releases](https://github.com/PodoSoju/soju/releases/latest
 
 ```bash
 # Extract to Soju's Libraries directory
-tar -xzf PodoSoju-*.tar.gz -C ~/Library/Application\ Support/com.soju.app/
+tar -xzf Soju-*.tar.gz -C ~/Library/Application\ Support/com.soju.app/
 ```
 
 ## Building
@@ -58,13 +58,13 @@ git push origin v11.0-rc4
 
 ```
 Libraries/
-├── PodoSoju/
+├── Soju/
 │   ├── bin/           # wine, wineserver, etc.
 │   ├── lib/
 │   │   ├── wine/      # Wine libraries
 │   │   └── external/  # DXMT, DXVK
 │   └── share/         # Resources, fonts
-└── PodoSojuVersion.plist
+└── SojuVersion.plist
 ```
 
 ## Graphics Backends
