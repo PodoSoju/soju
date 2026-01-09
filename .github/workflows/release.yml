@@ -62,26 +62,22 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: PodoSoju ${{ steps.version.outputs.version }}
+          name: Soju ${{ steps.version.outputs.version }}
           body: |
-            ## PodoSoju ${{ steps.version.outputs.version }}
+            ## Soju ${{ steps.version.outputs.version }}
 
-            Wine + DXMT + DXVK 통합 패키지 (Whisky 호환)
+            Wine + DXMT + DXVK bundle for macOS
 
-            ### 포함 구성요소
-            - **Wine-Staging** ${{ env.WINE_VERSION }} ([Gcenx 빌드](https://github.com/Gcenx/macOS_Wine_builds))
-            - **DXMT** ${{ env.DXMT_VERSION }} ([MIT 라이선스](https://github.com/3Shain/dxmt))
-            - **DXVK** ${{ env.DXVK_VERSION }} ([zlib 라이선스](https://github.com/doitsujin/dxvk))
-            - **CJK 폰트** (한글/일본어/중국어 지원)
+            ### Components
+            - **Wine-Staging** ${{ env.WINE_VERSION }} ([Gcenx build](https://github.com/Gcenx/macOS_Wine_builds))
+            - **DXMT** ${{ env.DXMT_VERSION }} ([MIT license](https://github.com/3Shain/dxmt))
+            - **DXVK** ${{ env.DXVK_VERSION }} ([zlib license](https://github.com/doitsujin/dxvk))
+            - **CJK Fonts** (Korean, Japanese, Chinese support)
 
-            ### 설치 방법
-            ```bash
-            tar -xzf Soju-*.tar.gz -C ~/Library/Application\ Support/com.isaacmarovitz.Whisky/
-            ```
+            ### Installation
+            Soju is automatically downloaded by the PodoSoju app on first launch.
 
-            Whisky를 재시작한 후 설정에서 "PodoSoju" Wine 버전을 선택하세요.
-
-            ### 라이선스
+            ### License
             - Wine: LGPL 2.1+
             - DXMT: MIT
             - DXVK: zlib
