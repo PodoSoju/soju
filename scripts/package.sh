@@ -20,7 +20,7 @@ WINE_VERSION="11.0-rc4"
 WINE_URL="https://github.com/Gcenx/macOS_Wine_builds/releases/download/${WINE_VERSION}/wine-staging-${WINE_VERSION}-osx64.tar.xz"
 
 echo "============================================"
-echo "Gcenx Wine-Staging → PodoSoju 패키징"
+echo "Gcenx Wine-Staging → Soju 패키징"
 echo "============================================"
 echo ""
 
@@ -52,24 +52,24 @@ echo "Wine 버전: $WINE_VERSION"
 
 # 출력 디렉토리 생성
 rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju"
+mkdir -p "$OUTPUT_DIR/Libraries/Soju"
 
 echo ""
 echo "[1/4] Gcenx Wine 복사..."
-cp -R "$GCENX_WINE/bin" "$OUTPUT_DIR/Libraries/PodoSoju/"
-cp -R "$GCENX_WINE/lib" "$OUTPUT_DIR/Libraries/PodoSoju/"
-cp -R "$GCENX_WINE/share" "$OUTPUT_DIR/Libraries/PodoSoju/"
+cp -R "$GCENX_WINE/bin" "$OUTPUT_DIR/Libraries/Soju/"
+cp -R "$GCENX_WINE/lib" "$OUTPUT_DIR/Libraries/Soju/"
+cp -R "$GCENX_WINE/share" "$OUTPUT_DIR/Libraries/Soju/"
 
 # 실행 권한 확인
-chmod +x "$OUTPUT_DIR/Libraries/PodoSoju/bin/"*
+chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/"*
 
 echo "[2/5] CJK 폰트 복사..."
 FONTS_DIR="$WINE_ROOT/fonts"
 if [ -d "$FONTS_DIR" ]; then
-    mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts"
-    cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
-    cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
-    cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/PodoSoju/share/wine/fonts/" 2>/dev/null || true
+    mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts"
+    cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+    cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+    cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
     echo "  CJK 폰트 추가됨"
 else
     echo "  fonts 폴더 없음"
@@ -77,9 +77,9 @@ fi
 
 echo "[3/5] D3DMetal 복사 (GPTK)..."
 if [ -d "$GPTK_WINE/lib/external/D3DMetal.framework" ]; then
-    mkdir -p "$OUTPUT_DIR/Libraries/PodoSoju/lib/external"
-    cp -R "$GPTK_WINE/lib/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/PodoSoju/lib/external/"
-    cp "$GPTK_WINE/lib/external/libd3dshared.dylib" "$OUTPUT_DIR/Libraries/PodoSoju/lib/external/" 2>/dev/null || true
+    mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/external"
+    cp -R "$GPTK_WINE/lib/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/Soju/lib/external/"
+    cp "$GPTK_WINE/lib/external/libd3dshared.dylib" "$OUTPUT_DIR/Libraries/Soju/lib/external/" 2>/dev/null || true
     echo "  D3DMetal 추가됨"
 else
     echo "  D3DMetal 없음 (GPTK 미설치)"
@@ -98,10 +98,10 @@ BUILD=$(echo "$WINE_VER_RAW" | grep -i staging >/dev/null && echo "staging" || e
 # patch는 항상 0 (rc는 preRelease로 표현)
 PATCH="0"
 
-echo "  PodoSoju 버전: $MAJOR.$MINOR-$PRERELEASE ($BUILD)"
+echo "  Soju 버전: $MAJOR.$MINOR-$PRERELEASE ($BUILD)"
 
-# PodoSojuVersion.plist 생성 (SemanticVersion 형식)
-cat > "$OUTPUT_DIR/Libraries/PodoSojuVersion.plist" << PLIST
+# SojuVersion.plist 생성 (SemanticVersion 형식)
+cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -127,9 +127,9 @@ echo "[5/5] tarball 생성..."
 cd "$OUTPUT_DIR"
 # 버전명: 11.0-rc4 형식
 if [ -n "$PRERELEASE" ]; then
-    TARBALL_NAME="PodoSoju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
+    TARBALL_NAME="Soju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
 else
-    TARBALL_NAME="PodoSoju-${MAJOR}.${MINOR}.${PATCH}.tar.gz"
+    TARBALL_NAME="Soju-${MAJOR}.${MINOR}.${PATCH}.tar.gz"
 fi
 tar -czf "$TARBALL_NAME" Libraries
 rm -rf Libraries

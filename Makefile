@@ -31,6 +31,8 @@ ifndef VERSION
 	$(error VERSION을 지정하세요. 예: make release VERSION=v11.1-rc1)
 endif
 	@echo "릴리즈: $(CURRENT_VERSION) → $(VERSION)"
+	@git tag -d $(VERSION) 2>/dev/null || true
+	@git push origin --delete $(VERSION) 2>/dev/null || true
 	@git tag $(VERSION) && git push origin $(VERSION)
 	@echo "완료: $(VERSION)"
 
@@ -45,6 +47,8 @@ release-rc:
 	NEW_RC=$$((RC_NUM + 1)); \
 	NEW_VERSION="$${BASE}-rc$${NEW_RC}"; \
 	echo "버전업: $(CURRENT_VERSION) → $$NEW_VERSION"; \
+	git tag -d $$NEW_VERSION 2>/dev/null || true; \
+	git push origin --delete $$NEW_VERSION 2>/dev/null || true; \
 	git tag $$NEW_VERSION && git push origin $$NEW_VERSION && \
 	echo "완료: $$NEW_VERSION"
 
@@ -56,6 +60,8 @@ release-stable:
 	fi
 	@NEW_VERSION=$$(echo "$(CURRENT_VERSION)" | sed 's/-rc[0-9]*//'); \
 	echo "안정 버전 릴리즈: $(CURRENT_VERSION) → $$NEW_VERSION"; \
+	git tag -d $$NEW_VERSION 2>/dev/null || true; \
+	git push origin --delete $$NEW_VERSION 2>/dev/null || true; \
 	git tag $$NEW_VERSION && git push origin $$NEW_VERSION && \
 	echo "완료: $$NEW_VERSION"
 
@@ -70,5 +76,7 @@ release-wine:
 	NEW_MINOR=$$((MINOR + 1)); \
 	NEW_VERSION="v$${MAJOR}.$${NEW_MINOR}"; \
 	echo "버전업: $(CURRENT_VERSION) → $$NEW_VERSION"; \
+	git tag -d $$NEW_VERSION 2>/dev/null || true; \
+	git push origin --delete $$NEW_VERSION 2>/dev/null || true; \
 	git tag $$NEW_VERSION && git push origin $$NEW_VERSION && \
 	echo "완료: $$NEW_VERSION"
