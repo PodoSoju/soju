@@ -1,8 +1,8 @@
-# PodoSoju
+# Soju
 
-**Wine distribution for Soju app**
+**Wine distribution for PodoSoju**
 
-Wine-Staging with DXMT and DXVK for macOS, packaged for the [Soju](https://github.com/yejune/soju) Windows app launcher.
+Wine-Staging with DXMT and DXVK for macOS. This Wine distribution is used by the [PodoSoju](https://github.com/podo-os/PodoSoju) app to run Windows applications.
 
 ## Features
 
@@ -13,11 +13,11 @@ Wine-Staging with DXMT and DXVK for macOS, packaged for the [Soju](https://githu
 
 ## Installation
 
-PodoSoju is automatically downloaded by the Soju app on first launch. No manual installation required.
+PodoSoju is automatically downloaded by the PodoSoju app on first launch. No manual installation required.
 
 ### Manual Download
 
-Download from [GitHub Releases](https://github.com/yejune/podo-soju/releases/latest).
+Download from [GitHub Releases](https://github.com/PodoSoju/soju/releases/latest).
 
 ```bash
 # Extract to Soju's Libraries directory
@@ -34,8 +34,8 @@ tar -xzf PodoSoju-*.tar.gz -C ~/Library/Application\ Support/com.soju.app/
 ### Build Script
 
 ```bash
-git clone https://github.com/yejune/podo-soju.git
-cd podo-soju
+git clone https://github.com/PodoSoju/soju.git
+cd soju
 ./scripts/package.sh
 ```
 
@@ -89,4 +89,4 @@ D3DMetal is not included due to licensing. Users can install Apple's Game Portin
 - [Gcenx Wine Builds](https://github.com/Gcenx/macOS_Wine_builds)
 - [DXMT](https://github.com/3Shain/dxmt)
 - [DXVK](https://github.com/doitsujin/dxvk)
-- [Soju App](https://github.com/yejune/soju)
+- [PodoSoju App](https://github.com/PodoSoju/app)

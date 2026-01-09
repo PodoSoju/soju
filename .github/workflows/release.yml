@@ -23,9 +23,7 @@ jobs:
 
       - name: Build PodoSoju
         id: build
-        run: |
-          chmod +x ./scripts/build-ci.sh
-          ./scripts/build-ci.sh
+        run: make build
 
       - name: List build artifacts
         run: ls -la dist/
