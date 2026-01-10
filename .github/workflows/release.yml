@@ -244,6 +244,72 @@ jobs:
         run: |
           ccache --show-stats
 
+      - name: Bundle runtime libraries
+        run: |
+          echo "Bundling Homebrew runtime libraries..."
+          WINE_LIB="${{ env.WINE_INSTALLROOT }}/lib"
+          mkdir -p "$WINE_LIB"
+
+          # Copy essential runtime libraries from Homebrew
+          HOMEBREW_LIB="/usr/local/lib"  # Intel Homebrew path
+
+          LIBS=(
+            "libfreetype.dylib"
+            "libfreetype.6.dylib"
+            "libgnutls.30.dylib"
+            "libMoltenVK.dylib"
+            "libSDL2.dylib"
+            "libSDL2-2.0.0.dylib"
+            "libpng16.16.dylib"
+            "libbrotlidec.1.dylib"
+            "libbrotlicommon.1.dylib"
+          )
+
+          for lib in "${LIBS[@]}"; do
+            if [ -f "$HOMEBREW_LIB/$lib" ]; then
+              cp "$HOMEBREW_LIB/$lib" "$WINE_LIB/" 2>/dev/null || true
+              echo "  Copied: $lib"
+            else
+              # Try to find in Homebrew cellar
+              FOUND=$(find /usr/local/Cellar -name "$lib" 2>/dev/null | head -1)
+              if [ -n "$FOUND" ]; then
+                cp "$FOUND" "$WINE_LIB/"
+                echo "  Copied from Cellar: $lib"
+              else
+                echo "  WARNING: $lib not found"
+              fi
+            fi
+          done
+
+          # Copy MoltenVK from brew
+          MOLTENVK=$(find /usr/local -name "libMoltenVK.dylib" 2>/dev/null | head -1)
+          if [ -n "$MOLTENVK" ]; then
+            cp "$MOLTENVK" "$WINE_LIB/"
+            echo "  Copied MoltenVK: $MOLTENVK"
+          fi
+
+          echo "Runtime libraries bundled"
+          ls -la "$WINE_LIB/"*.dylib 2>/dev/null | head -20 || true
+
+          # Fix library paths for portability
+          echo "Fixing library paths..."
+          WINE_BIN="${{ env.WINE_INSTALLROOT }}/bin"
+          for binary in "$WINE_BIN"/*; do
+            if file "$binary" | grep -q "Mach-O"; then
+              # Add rpath to find libraries in ../lib
+              install_name_tool -add_rpath @executable_path/../lib "$binary" 2>/dev/null || true
+            fi
+          done
+
+          # Fix dylib references in libraries
+          for dylib in "$WINE_LIB"/*.dylib; do
+            if [ -f "$dylib" ]; then
+              # Change ID to @rpath
+              install_name_tool -id "@rpath/$(basename $dylib)" "$dylib" 2>/dev/null || true
+            fi
+          done
+          echo "Library paths fixed"
+
       - name: Download DXMT
         id: dxmt
         run: |
