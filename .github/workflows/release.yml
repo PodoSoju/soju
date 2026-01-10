@@ -107,11 +107,26 @@ jobs:
           brew install \
             freetype \
             gnutls \
+            nettle \
+            p11-kit \
+            libtasn1 \
+            libidn2 \
+            libunistring \
             libusb \
             molten-vk \
             sdl2 \
             sdl3 \
-            faudio
+            faudio \
+            icu4c \
+            libiconv \
+            gettext \
+            libxml2 \
+            libxslt \
+            zstd \
+            xz \
+            lz4 \
+            libffi \
+            gmp
 
       - name: Setup ccache
         uses: actions/cache@v4
@@ -259,17 +274,44 @@ jobs:
           HOMEBREW_LIB="/usr/local/lib"  # Intel Homebrew path
 
           LIBS=(
-            "libfreetype.dylib"
+            # Font rendering
             "libfreetype.6.dylib"
+            "libpng16.16.dylib"
+            # Encryption/TLS (gnutls and dependencies)
             "libgnutls.30.dylib"
+            "libnettle.8.dylib"
+            "libhogweed.6.dylib"
+            "libtasn1.6.dylib"
+            "libp11-kit.0.dylib"
+            "libidn2.0.dylib"
+            "libunistring.5.dylib"
+            # Graphics
             "libMoltenVK.dylib"
-            "libSDL2.dylib"
+            # Audio
             "libSDL2-2.0.0.dylib"
             "libSDL3.0.dylib"
             "libFAudio.0.dylib"
-            "libpng16.16.dylib"
+            # Unicode/i18n (ICU)
+            "libicuuc.76.dylib"
+            "libicui18n.76.dylib"
+            "libicudata.76.dylib"
+            # Character encoding
+            "libiconv.2.dylib"
+            "libintl.8.dylib"
+            # XML
+            "libxml2.2.dylib"
+            "libxslt.1.dylib"
+            # Compression
             "libbrotlidec.1.dylib"
             "libbrotlicommon.1.dylib"
+            "libzstd.1.dylib"
+            "liblzma.5.dylib"
+            "liblz4.1.dylib"
+            "libz.1.dylib"
+            "libbz2.1.0.dylib"
+            # Misc
+            "libffi.8.dylib"
+            "libgmp.10.dylib"
           )
 
           for lib in "${LIBS[@]}"; do
