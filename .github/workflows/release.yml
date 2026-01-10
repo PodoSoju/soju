@@ -326,14 +326,20 @@ jobs:
           )
 
           for lib in "${LIBS[@]}"; do
+            # Skip if already copied
+            if [ -f "$WINE_LIB/$lib" ]; then
+              echo "  Already exists: $lib"
+              continue
+            fi
+
             if [ -f "$HOMEBREW_LIB/$lib" ]; then
-              cp "$HOMEBREW_LIB/$lib" "$WINE_LIB/" 2>/dev/null || true
+              cp -f "$HOMEBREW_LIB/$lib" "$WINE_LIB/" 2>/dev/null || true
               echo "  Copied: $lib"
             else
               # Try to find in Homebrew cellar
               FOUND=$(find /usr/local/Cellar -name "$lib" 2>/dev/null | head -1)
               if [ -n "$FOUND" ]; then
-                cp "$FOUND" "$WINE_LIB/"
+                cp -f "$FOUND" "$WINE_LIB/" 2>/dev/null || true
                 echo "  Copied from Cellar: $lib"
               else
                 echo "  WARNING: $lib not found"
