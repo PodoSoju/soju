@@ -1,1 +1,3 @@
 dist/
+wine-source/
+.patch-work/

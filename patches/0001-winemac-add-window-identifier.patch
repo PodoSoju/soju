@@ -1,0 +1,31 @@
+From: PodoSoju <podosoju@example.com>
+Subject: [PATCH] winemac: Add window identifier for macOS app identification
+
+Add SOJU_EXE_PATH environment variable support to set NSWindow identifier.
+This allows PodoSoju to identify which exe owns which window.
+
+---
+ dlls/winemac.drv/cocoa_window.m | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+index XXXXXXX..XXXXXXX 100644
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -1045,6 +1045,16 @@ + (WineWindow*) createWindowWithFeatures:(const struct macdrv_window_features*)w
+         window->resizable = wf->resizable;
+         window->_lastDisplayTime = [[NSDate distantPast] timeIntervalSinceReferenceDate];
+ 
++        /* Set window identifier from SOJU_EXE_PATH for PodoSoju integration */
++        const char* exePath = getenv("SOJU_EXE_PATH");
++        if (exePath)
++        {
++            NSString* identifier = [NSString stringWithUTF8String:exePath];
++            [window setIdentifier:identifier];
++        }
++        else
++            [window setIdentifier:@"wine-unknown"];
++
+         [window registerForDraggedTypes:@[(NSString*)kUTTypeData, (NSString*)kUTTypeContent]];
+ 
+         contentView = [[[WineContentView alloc] initWithFrame:NSZeroRect] autorelease];
