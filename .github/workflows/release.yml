@@ -109,7 +109,9 @@ jobs:
             gnutls \
             libusb \
             molten-vk \
-            sdl2
+            sdl2 \
+            sdl3 \
+            faudio
 
       - name: Setup ccache
         uses: actions/cache@v4
@@ -263,6 +265,8 @@ jobs:
             "libMoltenVK.dylib"
             "libSDL2.dylib"
             "libSDL2-2.0.0.dylib"
+            "libSDL3.0.dylib"
+            "libFAudio.0.dylib"
             "libpng16.16.dylib"
             "libbrotlidec.1.dylib"
             "libbrotlicommon.1.dylib"
