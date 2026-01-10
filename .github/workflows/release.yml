@@ -128,7 +128,10 @@ jobs:
             brotli \
             libffi \
             gmp \
-            libpcap
+            libpcap \
+            gstreamer \
+            gst-plugins-base \
+            gst-plugins-good
 
       - name: Verify runtime libraries exist
         run: |
@@ -177,14 +180,21 @@ jobs:
           fi
           echo "All critical libraries verified."
 
+      - name: Get Wine fork commit
+        id: wine_commit
+        run: |
+          # Get wine-fork commit hash for cache key (before ccache setup)
+          WINE_COMMIT=$(curl -s "https://api.github.com/repos/PodoSoju/wine/commits/soju-window-identifier" | grep '"sha"' | head -1 | cut -d'"' -f4)
+          echo "Wine fork commit: $WINE_COMMIT"
+          echo "commit=$WINE_COMMIT" >> "$GITHUB_OUTPUT"
+
       - name: Setup ccache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-wine-${{ steps.version.outputs.wine_version }}-${{ github.sha }}
+          key: ccache-wine-${{ steps.version.outputs.wine_version }}-${{ steps.wine_commit.outputs.commit }}
           restore-keys: |
-            ccache-wine-${{ steps.version.outputs.wine_version }}-
-            ccache-wine-
+            ccache-wine-${{ steps.version.outputs.wine_version }}-${{ steps.wine_commit.outputs.commit }}
 
       - name: Initialize ccache
         run: |
@@ -267,7 +277,7 @@ jobs:
             --without-gphoto \
             --with-gnutls \
             --without-gssapi \
-            --without-gstreamer \
+            --with-gstreamer \
             --without-krb5 \
             --with-mingw \
             --without-netapi \
