@@ -131,8 +131,8 @@ jobs:
 
           echo "Downloading Wine ${WINE_VERSION} source from GitHub mirror..."
 
-          # Download from GitHub wine-mirror (more reliable)
-          WINE_URL="https://github.com/wine-mirror/wine/archive/refs/tags/wine-${WINE_VERSION}.tar.gz"
+          # Download from PodoSoju fork with SOJU_EXE_PATH patch
+          WINE_URL="https://github.com/PodoSoju/wine/archive/refs/heads/soju-window-identifier.tar.gz"
           echo "Download URL: $WINE_URL"
 
           # Download with retry logic
@@ -161,28 +161,16 @@ jobs:
           echo "source_dir=$WINE_SOURCE_DIR" >> "$GITHUB_OUTPUT"
           echo "Wine source extracted to: $WINE_SOURCE_DIR"
 
-      - name: Apply patches
+      - name: Verify patches (already in fork)
         run: |
           WINE_SOURCE_DIR="${{ steps.download.outputs.source_dir }}"
-          PATCHES_DIR="${{ github.workspace }}/patches"
-
-          if [ -d "$PATCHES_DIR" ] && [ "$(ls -A $PATCHES_DIR/*.patch 2>/dev/null)" ]; then
-            echo "Applying patches from $PATCHES_DIR..."
-            cd "$WINE_SOURCE_DIR"
-
-            for patch in "$PATCHES_DIR"/*.patch; do
-              echo "Applying: $(basename $patch)"
-              # Use git apply with fallback to patch command
-              if git apply --check "$patch" 2>/dev/null; then
-                git apply "$patch"
-              else
-                patch -p1 < "$patch"
-              fi
-              echo "  Applied successfully"
-            done
-          else
-            echo "No patches to apply"
-          fi
+          echo "Using PodoSoju/wine fork with patches pre-applied"
+          echo "Checking for SOJU_EXE_PATH in cocoa_window.m..."
+          grep -n "SOJU_EXE_PATH" "$WINE_SOURCE_DIR/dlls/winemac.drv/cocoa_window.m" || {
+            echo "ERROR: SOJU_EXE_PATH patch not found!"
+            exit 1
+          }
+          echo "Patch verified successfully"
 
       - name: Configure Wine (crossover-wine-ci style)
         run: |
