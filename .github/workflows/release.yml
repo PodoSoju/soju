@@ -130,6 +130,53 @@ jobs:
             gmp \
             libpcap
 
+      - name: Verify runtime libraries exist
+        run: |
+          echo "Verifying runtime libraries before build..."
+          HOMEBREW_LIB="/usr/local/lib"
+          MISSING=0
+
+          # Critical libraries that must exist
+          CRITICAL_LIBS=(
+            "libfreetype.6.dylib"
+            "libpng16.16.dylib"
+            "libgnutls.30.dylib"
+            "libMoltenVK.dylib"
+            "libSDL2-2.0.0.dylib"
+          )
+
+          for lib in "${CRITICAL_LIBS[@]}"; do
+            if [ ! -f "$HOMEBREW_LIB/$lib" ]; then
+              FOUND=$(find /usr/local/Cellar -name "$lib" 2>/dev/null | head -1)
+              if [ -z "$FOUND" ]; then
+                echo "MISSING: $lib"
+                MISSING=$((MISSING + 1))
+              else
+                echo "OK (Cellar): $lib"
+              fi
+            else
+              echo "OK: $lib"
+            fi
+          done
+
+          # Check ICU (any version)
+          ICU_PATH="/usr/local/opt/icu4c/lib"
+          if [ ! -d "$ICU_PATH" ]; then
+            ICU_PATH="/opt/homebrew/opt/icu4c/lib"
+          fi
+          if [ -d "$ICU_PATH" ] && ls "$ICU_PATH"/libicuuc.*.dylib 1>/dev/null 2>&1; then
+            echo "OK: ICU libraries found in $ICU_PATH"
+          else
+            echo "MISSING: ICU libraries"
+            MISSING=$((MISSING + 1))
+          fi
+
+          if [ $MISSING -gt 0 ]; then
+            echo "ERROR: $MISSING critical libraries missing. Aborting before build."
+            exit 1
+          fi
+          echo "All critical libraries verified."
+
       - name: Setup ccache
         uses: actions/cache@v4
         with:
