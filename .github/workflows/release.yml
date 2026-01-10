@@ -19,6 +19,7 @@ env:
   # Build environment (crossover-wine-ci style)
   CC: ccache clang -arch x86_64
   CXX: ccache clang++ -arch x86_64
+  i386_CC: ccache i686-w64-mingw32-gcc
   x86_64_CC: ccache x86_64-w64-mingw32-gcc
   CFLAGS: -O2
   CROSSCFLAGS: -O2 -Wno-error=incompatible-pointer-types
@@ -195,7 +196,7 @@ jobs:
             --build=x86_64-apple-darwin \
             --prefix= \
             --disable-tests \
-            --enable-win64 \
+            --enable-archs=i386,x86_64 \
             --without-alsa \
             --without-capi \
             --with-coreaudio \
@@ -336,17 +337,26 @@ jobs:
           cp -R "$WINE_INSTALL_DIR/share" "$OUTPUT_DIR/Libraries/Soju/"
           chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/"*
 
-          # Integrate DXMT (x64)
+          # Integrate DXMT (x64 + x32)
           mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows"
+          mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/wine/i386-windows"
           if [ -d "$DXMT_DIR/x64" ]; then
             cp "$DXMT_DIR/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
-            echo "DXMT integrated"
+            echo "DXMT x64 integrated"
+          fi
+          if [ -d "$DXMT_DIR/x32" ]; then
+            cp "$DXMT_DIR/x32/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/i386-windows/" 2>/dev/null || true
+            echo "DXMT x32 integrated"
           fi
 
-          # Integrate DXVK (x64)
+          # Integrate DXVK (x64 + x32)
           if [ -d "$DXVK_DIR/x64" ]; then
             cp "$DXVK_DIR/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
-            echo "DXVK integrated"
+            echo "DXVK x64 integrated"
+          fi
+          if [ -d "$DXVK_DIR/x32" ]; then
+            cp "$DXVK_DIR/x32/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/i386-windows/" 2>/dev/null || true
+            echo "DXVK x32 integrated"
           fi
 
           # Copy CJK fonts
