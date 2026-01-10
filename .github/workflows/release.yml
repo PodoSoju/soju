@@ -611,6 +611,19 @@ jobs:
             echo "DXVK x32 integrated"
           fi
 
+          # Integrate GPTK (D3DMetal)
+          GPTK_DIR="${{ github.workspace }}/GPTK/redist/lib"
+          if [ -d "$GPTK_DIR/external" ]; then
+            mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/external"
+            cp -R "$GPTK_DIR/external/D3DMetal.framework" "$OUTPUT_DIR/Libraries/Soju/lib/external/" 2>/dev/null || true
+            cp "$GPTK_DIR/external/libd3dshared.dylib" "$OUTPUT_DIR/Libraries/Soju/lib/external/" 2>/dev/null || true
+            echo "GPTK D3DMetal integrated"
+          fi
+          if [ -d "$GPTK_DIR/wine/x86_64-windows" ]; then
+            cp "$GPTK_DIR/wine/x86_64-windows/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
+            echo "GPTK DLLs integrated"
+          fi
+
           # Copy CJK fonts
           FONTS_DIR="${{ github.workspace }}/fonts"
           if [ -d "$FONTS_DIR" ]; then
