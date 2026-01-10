@@ -22,7 +22,7 @@ env:
   x86_64_CC: ccache x86_64-w64-mingw32-gcc
   CFLAGS: -O2
   CROSSCFLAGS: -O2 -Wno-error=incompatible-pointer-types
-  LDFLAGS: -Wl,-headerpad_max_install_names -Wl,-rpath,@loader_path/../../ -Wl,-rpath,/opt/homebrew/lib
+  LDFLAGS: -Wl,-headerpad_max_install_names -Wl,-rpath,@loader_path/../../ -Wl,-rpath,/usr/local/lib
   MACOSX_DEPLOYMENT_TARGET: '10.15'
 
   # Build paths
@@ -38,7 +38,7 @@ env:
 jobs:
   build:
     name: Build Wine from Source
-    runs-on: macos-14  # Apple Silicon with Rosetta
+    runs-on: macos-15-intel  # Intel x86_64 for native library support
     timeout-minutes: 180
 
     steps:
@@ -207,7 +207,7 @@ jobs:
             --with-gettext \
             --without-gettextpo \
             --without-gphoto \
-            --without-gnutls \
+            --with-gnutls \
             --without-gssapi \
             --without-gstreamer \
             --without-krb5 \
