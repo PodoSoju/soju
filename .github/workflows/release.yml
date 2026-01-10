@@ -491,15 +491,11 @@ jobs:
       - name: Download Winetricks
         run: |
           WINETRICKS_VERSION="${{ env.WINETRICKS_VERSION }}"
-          WINETRICKS_URL="https://github.com/Winetricks/winetricks/releases/download/${WINETRICKS_VERSION}/winetricks"
 
+          # Download from raw source (release asset not available)
           echo "Downloading Winetricks ${WINETRICKS_VERSION}..."
-          curl -fsSL -o winetricks "$WINETRICKS_URL"
+          curl -fsSL -o winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/${WINETRICKS_VERSION}/src/winetricks"
           chmod +x winetricks
-
-          # Also get the verb files
-          curl -fsSL -o winetricks.bash-completion \
-            "https://github.com/Winetricks/winetricks/releases/download/${WINETRICKS_VERSION}/winetricks.bash-completion" || true
 
       - name: Package Soju
         id: package
