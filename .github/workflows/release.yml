@@ -319,6 +319,34 @@ jobs:
             "${{ env.WINE_INSTALLROOT }}/bin/wine64" --version || true
           fi
 
+      - name: Verify SOJU patches in built binary
+        run: |
+          echo "Verifying SOJU patches in built winemac.so..."
+          WINEMAC_SO="${{ env.WINE_INSTALLROOT }}/lib/wine/x86_64-unix/winemac.so"
+
+          if [ ! -f "$WINEMAC_SO" ]; then
+            echo "ERROR: winemac.so not found at $WINEMAC_SO"
+            exit 1
+          fi
+
+          # Check for SOJU_EXE_PATH in binary
+          if strings "$WINEMAC_SO" | grep -q "SOJU_EXE_PATH"; then
+            echo "✓ SOJU_EXE_PATH patch verified in binary"
+          else
+            echo "ERROR: SOJU_EXE_PATH not found in built binary!"
+            echo "This indicates the patch was not compiled into the binary."
+            exit 1
+          fi
+
+          # Check for SOJU_WORKSPACE_ID
+          if strings "$WINEMAC_SO" | grep -q "SOJU_WORKSPACE_ID"; then
+            echo "✓ SOJU_WORKSPACE_ID patch verified in binary"
+          else
+            echo "WARNING: SOJU_WORKSPACE_ID not found (optional)"
+          fi
+
+          echo "All required patches verified successfully"
+
       - name: Show ccache stats
         run: |
           ccache --show-stats
