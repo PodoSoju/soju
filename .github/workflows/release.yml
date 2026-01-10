@@ -12,9 +12,10 @@ on:
         default: ''
 
 env:
-  # DXMT and DXVK versions
+  # Component versions
   DXMT_VERSION: 'v0.72'
   DXVK_VERSION: 'v2.7.1'
+  WINE_MONO_VERSION: '10.4.1'
 
   # Build environment (crossover-wine-ci style)
   CC: ccache clang -arch x86_64
@@ -366,6 +367,34 @@ jobs:
 
           echo "dir=$DXVK_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Download Wine Mono
+        id: mono
+        run: |
+          MONO_VERSION="${{ env.WINE_MONO_VERSION }}"
+          MONO_URL="https://github.com/madewokherd/wine-mono/releases/download/wine-mono-${MONO_VERSION}/wine-mono-${MONO_VERSION}-x86.tar.xz"
+          MONO_DIR="${{ github.workspace }}/wine-mono"
+
+          echo "Downloading Wine Mono ${MONO_VERSION}..."
+
+          # Download with retry
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -fsSL -o wine-mono.tar.xz "$MONO_URL"; then
+              break
+            fi
+            if [ $i -eq $MAX_RETRIES ]; then
+              echo "ERROR: Failed to download Wine Mono"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          mkdir -p "$MONO_DIR"
+          tar -xJf wine-mono.tar.xz -C "$MONO_DIR"
+          rm wine-mono.tar.xz
+
+          echo "dir=$MONO_DIR" >> "$GITHUB_OUTPUT"
+
       - name: Package Soju
         id: package
         run: |
@@ -421,6 +450,14 @@ jobs:
             cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
             cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
             echo "CJK fonts added"
+          fi
+
+          # Copy Wine Mono
+          MONO_DIR="${{ steps.mono.outputs.dir }}"
+          if [ -d "$MONO_DIR" ]; then
+            mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/mono"
+            cp -R "$MONO_DIR"/* "$OUTPUT_DIR/Libraries/Soju/share/wine/mono/"
+            echo "Wine Mono integrated"
           fi
 
           # Generate SojuVersion.plist
