@@ -282,7 +282,7 @@ jobs:
             --with-mingw \
             --without-netapi \
             --with-opencl \
-            --with-opengl \
+            --without-egl \
             --without-oss \
             --with-pcap \
             --with-pthread \
