@@ -125,8 +125,11 @@ jobs:
             zstd \
             xz \
             lz4 \
+            brotli \
             libffi \
-            gmp
+            gmp \
+            libinotify \
+            libpcap
 
       - name: Setup ccache
         uses: actions/cache@v4
@@ -279,6 +282,7 @@ jobs:
             "libpng16.16.dylib"
             # Encryption/TLS (gnutls and dependencies)
             "libgnutls.30.dylib"
+            "libgnutlsxx.30.dylib"
             "libnettle.8.dylib"
             "libhogweed.6.dylib"
             "libtasn1.6.dylib"
@@ -291,27 +295,36 @@ jobs:
             "libSDL2-2.0.0.dylib"
             "libSDL3.0.dylib"
             "libFAudio.0.dylib"
-            # Unicode/i18n (ICU)
+            # Unicode/i18n (ICU 전체)
             "libicuuc.76.dylib"
             "libicui18n.76.dylib"
             "libicudata.76.dylib"
+            "libicuio.76.dylib"
+            "libicutest.76.dylib"
+            "libicutu.76.dylib"
             # Character encoding
             "libiconv.2.dylib"
             "libintl.8.dylib"
+            "libcharset.1.dylib"
             # XML
             "libxml2.2.dylib"
             "libxslt.1.dylib"
+            "libexslt.0.dylib"
             # Compression
             "libbrotlidec.1.dylib"
             "libbrotlicommon.1.dylib"
+            "libbrotlienc.1.dylib"
             "libzstd.1.dylib"
             "liblzma.5.dylib"
             "liblz4.1.dylib"
             "libz.1.dylib"
-            "libbz2.1.0.dylib"
+            "libbz2.1.dylib"
             # Misc
             "libffi.8.dylib"
             "libgmp.10.dylib"
+            "libgmpxx.4.dylib"
+            "libinotify.0.dylib"
+            "libpcap.1.dylib"
           )
 
           for lib in "${LIBS[@]}"; do
