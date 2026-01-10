@@ -17,6 +17,7 @@ env:
   DXVK_VERSION: 'v2.7.1'
   WINE_MONO_VERSION: '10.4.1'
   WINE_GECKO_VERSION: '2.47.4'
+  WINETRICKS_VERSION: '20250102'
 
   # Build environment (crossover-wine-ci style)
   CC: ccache clang -arch x86_64
@@ -429,6 +430,19 @@ jobs:
 
           echo "dir=$GECKO_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Download Winetricks
+        run: |
+          WINETRICKS_VERSION="${{ env.WINETRICKS_VERSION }}"
+          WINETRICKS_URL="https://github.com/Winetricks/winetricks/releases/download/${WINETRICKS_VERSION}/winetricks"
+
+          echo "Downloading Winetricks ${WINETRICKS_VERSION}..."
+          curl -fsSL -o winetricks "$WINETRICKS_URL"
+          chmod +x winetricks
+
+          # Also get the verb files
+          curl -fsSL -o winetricks.bash-completion \
+            "https://github.com/Winetricks/winetricks/releases/download/${WINETRICKS_VERSION}/winetricks.bash-completion" || true
+
       - name: Package Soju
         id: package
         run: |
@@ -500,6 +514,13 @@ jobs:
             mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/gecko"
             cp -R "$GECKO_DIR"/* "$OUTPUT_DIR/Libraries/Soju/share/wine/gecko/"
             echo "Wine Gecko integrated"
+          fi
+
+          # Copy Winetricks
+          if [ -f "${{ github.workspace }}/winetricks" ]; then
+            cp "${{ github.workspace }}/winetricks" "$OUTPUT_DIR/Libraries/Soju/bin/"
+            chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/winetricks"
+            echo "Winetricks integrated"
           fi
 
           # Generate SojuVersion.plist
