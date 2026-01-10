@@ -341,12 +341,7 @@ jobs:
             fi
           done
 
-          # Copy MoltenVK from brew
-          MOLTENVK=$(find /usr/local -name "libMoltenVK.dylib" 2>/dev/null | head -1)
-          if [ -n "$MOLTENVK" ]; then
-            cp "$MOLTENVK" "$WINE_LIB/"
-            echo "  Copied MoltenVK: $MOLTENVK"
-          fi
+          # MoltenVK already copied in LIBS array above
 
           echo "Runtime libraries bundled"
           ls -la "$WINE_LIB/"*.dylib 2>/dev/null | head -20 || true
