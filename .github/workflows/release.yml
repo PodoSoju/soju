@@ -128,7 +128,6 @@ jobs:
             brotli \
             libffi \
             gmp \
-            libinotify \
             libpcap
 
       - name: Setup ccache
@@ -323,7 +322,6 @@ jobs:
             "libffi.8.dylib"
             "libgmp.10.dylib"
             "libgmpxx.4.dylib"
-            "libinotify.0.dylib"
             "libpcap.1.dylib"
           )
 
