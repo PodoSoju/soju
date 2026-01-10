@@ -1,19 +1,45 @@
-name: Build and Release Soju
+name: Build and Release Soju (Source Build)
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      wine_version:
+        description: 'Wine version to build (e.g., 11.0-rc5)'
+        required: false
+        default: ''
 
 env:
-  WINE_VERSION: '11.0-rc4'
+  # DXMT and DXVK versions
   DXMT_VERSION: 'v0.72'
   DXVK_VERSION: 'v2.7.1'
 
+  # Build environment (crossover-wine-ci style)
+  CC: ccache clang -arch x86_64
+  CXX: ccache clang++ -arch x86_64
+  x86_64_CC: ccache x86_64-w64-mingw32-gcc
+  CFLAGS: -O2
+  CROSSCFLAGS: -O2 -Wno-error=incompatible-pointer-types
+  LDFLAGS: -Wl,-headerpad_max_install_names -Wl,-rpath,@loader_path/../../ -Wl,-rpath,/opt/homebrew/lib
+  MACOSX_DEPLOYMENT_TARGET: '10.15'
+
+  # Build paths
+  WINE_CONFIGURE: ${{ github.workspace }}/wine-source/configure
+  BUILDROOT: ${{ github.workspace }}/build
+  WINE_INSTALLROOT: ${{ github.workspace }}/wine-install
+
+  # ccache settings
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: '4G'
+  CCACHE_COMPILERCHECK: content
+
 jobs:
   build:
-    name: Build Soju
+    name: Build Wine from Source
     runs-on: macos-14
+    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
@@ -21,19 +47,392 @@ jobs:
         with:
           lfs: true
 
-      - name: Build Soju
-        id: build
-        run: make build
+      - name: Read VERSION file
+        id: version
+        run: |
+          # Read version from VERSION file
+          if [ -f "VERSION" ]; then
+            WINE_VERSION=$(cat VERSION | tr -d '[:space:]')
+            echo "Read Wine version from VERSION file: $WINE_VERSION"
+          else
+            echo "ERROR: VERSION file not found"
+            exit 1
+          fi
 
-      - name: List build artifacts
-        run: ls -la dist/
+          # Override with workflow input if provided
+          if [ -n "${{ github.event.inputs.wine_version }}" ]; then
+            WINE_VERSION="${{ github.event.inputs.wine_version }}"
+            echo "Overridden with workflow input: $WINE_VERSION"
+          fi
+
+          echo "wine_version=$WINE_VERSION" >> "$GITHUB_OUTPUT"
+
+          # Parse version components
+          MAJOR=$(echo "$WINE_VERSION" | sed -E 's/([0-9]+)\..*/\1/')
+          MINOR=$(echo "$WINE_VERSION" | sed -E 's/[0-9]+\.([0-9]+).*/\1/')
+          PRERELEASE=$(echo "$WINE_VERSION" | sed -E 's/.*-(rc[0-9]+).*/\1/' | grep -E '^rc' || echo "")
+
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+
+          echo "============================================"
+          echo "Wine Version: $WINE_VERSION"
+          echo "Major: $MAJOR, Minor: $MINOR, Prerelease: $PRERELEASE"
+          echo "============================================"
+
+      - name: Install build dependencies (Homebrew)
+        run: |
+          # Install Homebrew dependencies for Wine build (crossover-wine-ci style)
+          brew install \
+            bison \
+            ccache \
+            flex \
+            gettext \
+            mingw-w64 \
+            pkg-config
+
+          # Add bison and flex to PATH (Homebrew versions required)
+          echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
+          echo "$(brew --prefix flex)/bin" >> $GITHUB_PATH
+          echo "$(brew --prefix ccache)/libexec" >> $GITHUB_PATH
+
+      - name: Install runtime dependencies (Homebrew)
+        run: |
+          # Install runtime libraries
+          brew install \
+            freetype \
+            gnutls \
+            libusb \
+            molten-vk \
+            sdl2
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-wine-${{ steps.version.outputs.wine_version }}-${{ github.sha }}
+          restore-keys: |
+            ccache-wine-${{ steps.version.outputs.wine_version }}-
+            ccache-wine-
+
+      - name: Initialize ccache
+        run: |
+          ccache --zero-stats
+          ccache --max-size=${{ env.CCACHE_MAXSIZE }}
+          ccache --show-config
+
+      - name: Download Wine source
+        id: download
+        run: |
+          WINE_VERSION="${{ steps.version.outputs.wine_version }}"
+          WINE_SOURCE_DIR="${{ github.workspace }}/wine-source"
+
+          echo "Downloading Wine ${WINE_VERSION} source from GitHub mirror..."
+
+          # Download from GitHub wine-mirror (more reliable)
+          WINE_URL="https://github.com/wine-mirror/wine/archive/refs/tags/wine-${WINE_VERSION}.tar.gz"
+          echo "Download URL: $WINE_URL"
+
+          # Download with retry logic
+          MAX_RETRIES=3
+          RETRY_DELAY=10
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Download attempt $i of $MAX_RETRIES..."
+            if curl -fsSL -o wine-source.tar.gz "$WINE_URL"; then
+              echo "Download successful"
+              break
+            else
+              if [ $i -eq $MAX_RETRIES ]; then
+                echo "ERROR: Failed to download Wine source after $MAX_RETRIES attempts"
+                exit 1
+              fi
+              echo "Download failed, retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            fi
+          done
+
+          # Extract source
+          mkdir -p "$WINE_SOURCE_DIR"
+          tar -xzf wine-source.tar.gz -C "$WINE_SOURCE_DIR" --strip-components=1
+          rm wine-source.tar.gz
+
+          echo "source_dir=$WINE_SOURCE_DIR" >> "$GITHUB_OUTPUT"
+          echo "Wine source extracted to: $WINE_SOURCE_DIR"
+
+      - name: Apply patches
+        run: |
+          WINE_SOURCE_DIR="${{ steps.download.outputs.source_dir }}"
+          PATCHES_DIR="${{ github.workspace }}/patches"
+
+          if [ -d "$PATCHES_DIR" ] && [ "$(ls -A $PATCHES_DIR/*.patch 2>/dev/null)" ]; then
+            echo "Applying patches from $PATCHES_DIR..."
+            cd "$WINE_SOURCE_DIR"
+
+            for patch in "$PATCHES_DIR"/*.patch; do
+              echo "Applying: $(basename $patch)"
+              # Use git apply with fallback to patch command
+              if git apply --check "$patch" 2>/dev/null; then
+                git apply "$patch"
+              else
+                patch -p1 < "$patch"
+              fi
+              echo "  Applied successfully"
+            done
+          else
+            echo "No patches to apply"
+          fi
+
+      - name: Configure Wine (crossover-wine-ci style)
+        run: |
+          WINE_SOURCE_DIR="${{ steps.download.outputs.source_dir }}"
+
+          mkdir -p "${{ env.BUILDROOT }}/wine64"
+          cd "${{ env.BUILDROOT }}/wine64"
+
+          # Configure with crossover-wine-ci style options (x86_64 only)
+          "$WINE_SOURCE_DIR/configure" \
+            --build=x86_64-apple-darwin \
+            --prefix= \
+            --disable-tests \
+            --enable-win64 \
+            --without-alsa \
+            --without-capi \
+            --with-coreaudio \
+            --with-cups \
+            --without-dbus \
+            --without-ffmpeg \
+            --without-fontconfig \
+            --with-freetype \
+            --with-gettext \
+            --without-gettextpo \
+            --without-gphoto \
+            --with-gnutls \
+            --without-gssapi \
+            --without-gstreamer \
+            --without-krb5 \
+            --with-mingw \
+            --without-netapi \
+            --with-opencl \
+            --without-opengl \
+            --without-oss \
+            --with-pcap \
+            --with-pthread \
+            --without-pulse \
+            --without-sane \
+            --with-sdl \
+            --without-udev \
+            --with-unwind \
+            --without-usb \
+            --without-v4l2 \
+            --with-vulkan \
+            --without-wayland \
+            --without-x
+
+      - name: Build Wine
+        run: |
+          cd "${{ env.BUILDROOT }}/wine64"
+
+          NPROC=$(sysctl -n hw.ncpu 2>/dev/null)
+          echo "Building with $NPROC parallel jobs..."
+          make -j$NPROC
+
+      - name: Install Wine
+        run: |
+          cd "${{ env.BUILDROOT }}/wine64"
+
+          echo "Installing Wine..."
+          make install-lib DESTDIR="${{ env.WINE_INSTALLROOT }}"
+
+          echo "Wine build complete"
+
+          # Verify installation
+          if [ -f "${{ env.WINE_INSTALLROOT }}/bin/wine64" ]; then
+            "${{ env.WINE_INSTALLROOT }}/bin/wine64" --version || true
+          fi
+
+      - name: Show ccache stats
+        run: |
+          ccache --show-stats
+
+      - name: Download DXMT
+        id: dxmt
+        run: |
+          DXMT_VERSION="${{ env.DXMT_VERSION }}"
+          DXMT_URL="https://github.com/3Shain/dxmt/releases/download/${DXMT_VERSION}/dxmt-${DXMT_VERSION}-builtin.tar.gz"
+          DXMT_DIR="${{ github.workspace }}/dxmt"
+
+          echo "Downloading DXMT ${DXMT_VERSION}..."
+
+          # Download with retry
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -fsSL -o dxmt.tar.gz "$DXMT_URL"; then
+              break
+            fi
+            if [ $i -eq $MAX_RETRIES ]; then
+              echo "ERROR: Failed to download DXMT"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          mkdir -p "$DXMT_DIR"
+          tar -xzf dxmt.tar.gz -C "$DXMT_DIR"
+          rm dxmt.tar.gz
+
+          echo "dir=$DXMT_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Download DXVK
+        id: dxvk
+        run: |
+          DXVK_VERSION="${{ env.DXVK_VERSION }}"
+          DXVK_URL="https://github.com/doitsujin/dxvk/releases/download/${DXVK_VERSION}/dxvk-${DXVK_VERSION#v}.tar.gz"
+          DXVK_DIR="${{ github.workspace }}/dxvk"
+
+          echo "Downloading DXVK ${DXVK_VERSION}..."
+
+          # Download with retry
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -fsSL -o dxvk.tar.gz "$DXVK_URL"; then
+              break
+            fi
+            if [ $i -eq $MAX_RETRIES ]; then
+              echo "ERROR: Failed to download DXVK"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          mkdir -p "$DXVK_DIR"
+          tar -xzf dxvk.tar.gz -C "$DXVK_DIR" --strip-components=1
+          rm dxvk.tar.gz
+
+          echo "dir=$DXVK_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Package Soju
+        id: package
+        run: |
+          WINE_INSTALL_DIR="${{ env.WINE_INSTALLROOT }}"
+          DXMT_DIR="${{ steps.dxmt.outputs.dir }}"
+          DXVK_DIR="${{ steps.dxvk.outputs.dir }}"
+          OUTPUT_DIR="${{ github.workspace }}/dist"
+
+          WINE_VERSION="${{ steps.version.outputs.wine_version }}"
+          MAJOR="${{ steps.version.outputs.major }}"
+          MINOR="${{ steps.version.outputs.minor }}"
+          PRERELEASE="${{ steps.version.outputs.prerelease }}"
+
+          echo "Packaging Soju..."
+
+          # Create output structure
+          rm -rf "$OUTPUT_DIR"
+          mkdir -p "$OUTPUT_DIR/Libraries/Soju"
+
+          # Copy Wine binaries and libraries
+          cp -R "$WINE_INSTALL_DIR/bin" "$OUTPUT_DIR/Libraries/Soju/"
+          cp -R "$WINE_INSTALL_DIR/lib" "$OUTPUT_DIR/Libraries/Soju/"
+          cp -R "$WINE_INSTALL_DIR/share" "$OUTPUT_DIR/Libraries/Soju/"
+          chmod +x "$OUTPUT_DIR/Libraries/Soju/bin/"*
+
+          # Integrate DXMT (x64)
+          mkdir -p "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows"
+          if [ -d "$DXMT_DIR/x64" ]; then
+            cp "$DXMT_DIR/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
+            echo "DXMT integrated"
+          fi
+
+          # Integrate DXVK (x64)
+          if [ -d "$DXVK_DIR/x64" ]; then
+            cp "$DXVK_DIR/x64/"*.dll "$OUTPUT_DIR/Libraries/Soju/lib/wine/x86_64-windows/" 2>/dev/null || true
+            echo "DXVK integrated"
+          fi
+
+          # Copy CJK fonts
+          FONTS_DIR="${{ github.workspace }}/fonts"
+          if [ -d "$FONTS_DIR" ]; then
+            mkdir -p "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts"
+            cp "$FONTS_DIR"/*.TTC "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+            cp "$FONTS_DIR"/*.ttc "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+            cp "$FONTS_DIR"/OFL-*.txt "$OUTPUT_DIR/Libraries/Soju/share/wine/fonts/" 2>/dev/null || true
+            echo "CJK fonts added"
+          fi
+
+          # Generate SojuVersion.plist
+          cat > "$OUTPUT_DIR/Libraries/SojuVersion.plist" << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>version</key>
+              <dict>
+                  <key>major</key>
+                  <integer>$MAJOR</integer>
+                  <key>minor</key>
+                  <integer>$MINOR</integer>
+                  <key>patch</key>
+                  <integer>0</integer>
+                  <key>preRelease</key>
+                  <string>$PRERELEASE</string>
+                  <key>build</key>
+                  <string>source</string>
+              </dict>
+              <key>components</key>
+              <dict>
+                  <key>wine</key>
+                  <string>${WINE_VERSION}</string>
+                  <key>dxmt</key>
+                  <string>${DXMT_VERSION}</string>
+                  <key>dxvk</key>
+                  <string>${DXVK_VERSION}</string>
+              </dict>
+              <key>buildInfo</key>
+              <dict>
+                  <key>buildType</key>
+                  <string>source</string>
+                  <key>buildDate</key>
+                  <string>$(date -u +"%Y-%m-%dT%H:%M:%SZ")</string>
+                  <key>commit</key>
+                  <string>${GITHUB_SHA}</string>
+              </dict>
+          </dict>
+          </plist>
+          PLIST
+
+          # Create tarball
+          cd "$OUTPUT_DIR"
+          if [ -n "$PRERELEASE" ]; then
+            TARBALL_NAME="Soju-${MAJOR}.${MINOR}-${PRERELEASE}.tar.gz"
+          else
+            TARBALL_NAME="Soju-${MAJOR}.${MINOR}.0.tar.gz"
+          fi
+          tar -czf "$TARBALL_NAME" Libraries
+          rm -rf Libraries
+
+          echo "tarball_name=$TARBALL_NAME" >> "$GITHUB_OUTPUT"
+          echo "tarball_path=$OUTPUT_DIR/$TARBALL_NAME" >> "$GITHUB_OUTPUT"
+
+          echo "============================================"
+          echo "Package complete: $TARBALL_NAME"
+          echo "============================================"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: soju-build
           path: dist/*.tar.gz
-          retention-days: 1
+          retention-days: 7
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ env.BUILDROOT }}/wine64/config.log
+            ${{ env.CCACHE_DIR }}/stats
+          retention-days: 3
 
   release:
     name: Create GitHub Release
@@ -46,36 +445,53 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read VERSION file
+        id: version
+        run: |
+          WINE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "wine_version=$WINE_VERSION" >> "$GITHUB_OUTPUT"
+
+          # Parse for display
+          MAJOR=$(echo "$WINE_VERSION" | sed -E 's/([0-9]+)\..*/\1/')
+          MINOR=$(echo "$WINE_VERSION" | sed -E 's/[0-9]+\.([0-9]+).*/\1/')
+          PRERELEASE=$(echo "$WINE_VERSION" | sed -E 's/.*-(rc[0-9]+).*/\1/' | grep -E '^rc' || echo "")
+
+          if [ -n "$PRERELEASE" ]; then
+            echo "display_version=${MAJOR}.${MINOR}-${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          else
+            echo "display_version=${MAJOR}.${MINOR}.0" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: soju-build
           path: dist/
 
-      - name: Get release version
-        id: version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Release version: $VERSION"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Soju ${{ steps.version.outputs.version }}
+          name: Soju ${{ steps.version.outputs.display_version }}
           body: |
-            ## Soju ${{ steps.version.outputs.version }}
+            ## Soju ${{ steps.version.outputs.display_version }}
 
-            Wine + DXMT + DXVK bundle for macOS
+            Wine built from source with custom patches for macOS.
 
             ### Components
-            - **Wine-Staging** ${{ env.WINE_VERSION }} ([Gcenx build](https://github.com/Gcenx/macOS_Wine_builds))
+            - **Wine** ${{ steps.version.outputs.wine_version }} (built from source)
             - **DXMT** ${{ env.DXMT_VERSION }} ([MIT license](https://github.com/3Shain/dxmt))
             - **DXVK** ${{ env.DXVK_VERSION }} ([zlib license](https://github.com/doitsujin/dxvk))
             - **CJK Fonts** (Korean, Japanese, Chinese support)
 
+            ### Custom Patches
+            - Window identifier for PodoSoju integration
+
             ### Installation
             Soju is automatically downloaded by the PodoSoju app on first launch.
+
+            ### Build Info
+            - Build type: Source build
+            - Commit: ${{ github.sha }}
 
             ### License
             - Wine: LGPL 2.1+
