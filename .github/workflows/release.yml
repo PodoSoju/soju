@@ -294,13 +294,7 @@ jobs:
             "libSDL2-2.0.0.dylib"
             "libSDL3.0.dylib"
             "libFAudio.0.dylib"
-            # Unicode/i18n (ICU 전체)
-            "libicuuc.76.dylib"
-            "libicui18n.76.dylib"
-            "libicudata.76.dylib"
-            "libicuio.76.dylib"
-            "libicutest.76.dylib"
-            "libicutu.76.dylib"
+            # Unicode/i18n (ICU) - dynamically detected below
             # Character encoding
             "libiconv.2.dylib"
             "libintl.8.dylib"
@@ -346,6 +340,22 @@ jobs:
               fi
             fi
           done
+
+          # Copy ICU libraries dynamically (version-agnostic)
+          echo "Copying ICU libraries..."
+          ICU_PATH="/usr/local/opt/icu4c/lib"
+          if [ ! -d "$ICU_PATH" ]; then
+            ICU_PATH="/opt/homebrew/opt/icu4c/lib"
+          fi
+          if [ -d "$ICU_PATH" ]; then
+            for iculib in "$ICU_PATH"/libicu*.dylib; do
+              if [ -f "$iculib" ] && [ ! -L "$iculib" ]; then
+                cp -f "$iculib" "$WINE_LIB/" 2>/dev/null && echo "  Copied: $(basename $iculib)" || true
+              fi
+            done
+          else
+            echo "  WARNING: ICU library path not found"
+          fi
 
           # MoltenVK already copied in LIBS array above
 
