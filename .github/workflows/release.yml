@@ -412,18 +412,14 @@ jobs:
             fi
 
             if [ -e "$HOMEBREW_LIB/$lib" ]; then
-              cp -Pf "$HOMEBREW_LIB/$lib" "$WINE_LIB/" 2>/dev/null || true
-              # Also copy symlink if exists
-              BASE_LIB=$(echo "$lib" | sed -E 's/\.[0-9]+\.dylib$/.dylib/')
-              if [ -L "$HOMEBREW_LIB/$BASE_LIB" ]; then
-                cp -Pf "$HOMEBREW_LIB/$BASE_LIB" "$WINE_LIB/" 2>/dev/null || true
-              fi
+              # Use -Lf to follow symlinks and copy actual files
+              cp -Lf "$HOMEBREW_LIB/$lib" "$WINE_LIB/" 2>/dev/null || true
               echo "  Copied: $lib"
             else
               # Try to find in Homebrew cellar
               FOUND=$(find /usr/local/Cellar -name "$lib" 2>/dev/null | head -1)
               if [ -n "$FOUND" ]; then
-                cp -Pf "$FOUND" "$WINE_LIB/" 2>/dev/null || true
+                cp -Lf "$FOUND" "$WINE_LIB/" 2>/dev/null || true
                 echo "  Copied from Cellar: $lib"
               else
                 echo "  WARNING: $lib not found"
