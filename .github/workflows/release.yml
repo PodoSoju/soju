@@ -479,28 +479,55 @@ jobs:
             fi
           done
 
-          # Fix dylib references in libraries
-          for dylib in "$WINE_LIB"/*.dylib; do
-            if [ -f "$dylib" ]; then
-              # Change ID to @rpath
-              install_name_tool -id "@rpath/$(basename $dylib)" "$dylib" 2>/dev/null || true
+          # Fix dylib references in libraries (multiple passes for transitive deps)
+          fix_homebrew_refs() {
+            local lib="$1"
+            otool -L "$lib" 2>/dev/null | grep -E "/usr/local|/opt/homebrew" | awk '{print $1}' | while read dep; do
+              depname=$(basename "$dep")
+              if [ -f "$WINE_LIB/$depname" ]; then
+                install_name_tool -change "$dep" "@rpath/$depname" "$lib" 2>/dev/null || true
+                echo "  Fixed: $(basename $lib) -> @rpath/$depname"
+              fi
+            done
+          }
 
-              # Add rpath to find sibling libraries
-              install_name_tool -add_rpath @loader_path "$dylib" 2>/dev/null || true
-
-              # Fix inter-library dependencies (Homebrew paths -> @rpath)
-              # Get all dependencies that point to Homebrew paths
-              otool -L "$dylib" 2>/dev/null | grep -E "/usr/local|/opt/homebrew" | awk '{print $1}' | while read dep; do
-                depname=$(basename "$dep")
-                # Only fix if we have the library bundled
-                if [ -f "$WINE_LIB/$depname" ]; then
-                  install_name_tool -change "$dep" "@rpath/$depname" "$dylib" 2>/dev/null || true
-                  echo "  Fixed: $(basename $dylib) -> @rpath/$depname"
+          for pass in 1 2 3; do
+            echo "=== Pass $pass: Fixing library dependencies ==="
+            for dylib in "$WINE_LIB"/*.dylib; do
+              if [ -f "$dylib" ]; then
+                # First pass: set ID and rpath
+                if [ $pass -eq 1 ]; then
+                  install_name_tool -id "@rpath/$(basename $dylib)" "$dylib" 2>/dev/null || true
+                  install_name_tool -add_rpath @loader_path "$dylib" 2>/dev/null || true
                 fi
-              done
+                fix_homebrew_refs "$dylib"
+              fi
+            done
+          done
+
+          # Also fix Wine .so modules
+          echo "Fixing Wine .so modules..."
+          for sofile in "$WINE_LIB/wine/x86_64-unix"/*.so; do
+            if [ -f "$sofile" ]; then
+              install_name_tool -add_rpath "@loader_path/../../../" "$sofile" 2>/dev/null || true
+              fix_homebrew_refs "$sofile"
             fi
           done
-          echo "Library paths fixed"
+
+          # Verify no Homebrew refs remain
+          echo "Verifying library fixes..."
+          UNFIXED=0
+          for dylib in "$WINE_LIB"/*.dylib; do
+            if otool -L "$dylib" 2>/dev/null | grep -qE "/usr/local|/opt/homebrew"; then
+              echo "WARNING: Still has Homebrew refs: $(basename $dylib)"
+              UNFIXED=$((UNFIXED + 1))
+            fi
+          done
+          if [ $UNFIXED -gt 0 ]; then
+            echo "WARNING: $UNFIXED libraries still have Homebrew references (may be OK if deps not bundled)"
+          else
+            echo "All library paths fixed successfully"
+          fi
 
           # Create symlinks for versioned libraries (e.g., libfreetype.6.dylib -> libfreetype.dylib)
           echo "Creating library symlinks..."
