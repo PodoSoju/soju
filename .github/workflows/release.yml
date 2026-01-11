@@ -184,7 +184,7 @@ jobs:
         id: wine_commit
         run: |
           # Get wine-fork commit hash for cache key (before ccache setup)
-          WINE_COMMIT=$(curl -s "https://api.github.com/repos/PodoSoju/wine/commits/soju-window-identifier" | grep '"sha"' | head -1 | cut -d'"' -f4)
+          WINE_COMMIT=$(curl -s "https://api.github.com/repos/PodoSoju/wine/commits/soju-patch" | grep '"sha"' | head -1 | cut -d'"' -f4)
           echo "Wine fork commit: $WINE_COMMIT"
           echo "commit=$WINE_COMMIT" >> "$GITHUB_OUTPUT"
 
@@ -211,7 +211,7 @@ jobs:
           echo "Downloading Wine ${WINE_VERSION} source from GitHub mirror..."
 
           # Download from PodoSoju fork with SOJU_EXE_PATH patch
-          WINE_URL="https://github.com/PodoSoju/wine/archive/refs/heads/soju-window-identifier.tar.gz"
+          WINE_URL="https://github.com/PodoSoju/wine/archive/refs/heads/soju-patch.tar.gz"
           echo "Download URL: $WINE_URL"
 
           # Download with retry logic
