@@ -351,6 +351,24 @@ jobs:
         run: |
           ccache --show-stats
 
+      - name: Build soju-extract-icon tool
+        run: |
+          WINE_SOURCE_DIR="${{ steps.download.outputs.source_dir }}"
+          TOOL_DIR="$WINE_SOURCE_DIR/tools/soju-extract-icon"
+
+          if [ -d "$TOOL_DIR" ]; then
+            echo "Building soju-extract-icon..."
+            cd "$TOOL_DIR"
+            cc -Wall -O2 -std=c99 -o soju-extract-icon soju-extract-icon.c
+
+            # Copy to Wine bin directory
+            cp soju-extract-icon "${{ env.WINE_INSTALLROOT }}/bin/"
+            chmod +x "${{ env.WINE_INSTALLROOT }}/bin/soju-extract-icon"
+            echo "✓ soju-extract-icon built and installed"
+          else
+            echo "WARNING: soju-extract-icon source not found at $TOOL_DIR"
+          fi
+
       - name: Bundle runtime libraries
         run: |
           echo "Bundling Homebrew runtime libraries..."
