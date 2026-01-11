@@ -88,7 +88,9 @@ jobs:
       - name: Install build dependencies (Homebrew)
         run: |
           # Install Homebrew dependencies for Wine build (crossover-wine-ci style)
-          brew install \
+          # Suppress "already installed" warnings
+          export HOMEBREW_NO_INSTALL_UPGRADE=1
+          brew install --quiet \
             bison \
             ccache \
             flex \
@@ -103,8 +105,9 @@ jobs:
 
       - name: Install runtime dependencies (Homebrew)
         run: |
-          # Install runtime libraries
-          brew install \
+          # Install runtime libraries (suppress "already installed" warnings)
+          export HOMEBREW_NO_INSTALL_UPGRADE=1
+          brew install --quiet \
             freetype \
             gnutls \
             nettle \
@@ -481,6 +484,20 @@ jobs:
             if [ -f "$dylib" ]; then
               # Change ID to @rpath
               install_name_tool -id "@rpath/$(basename $dylib)" "$dylib" 2>/dev/null || true
+
+              # Add rpath to find sibling libraries
+              install_name_tool -add_rpath @loader_path "$dylib" 2>/dev/null || true
+
+              # Fix inter-library dependencies (Homebrew paths -> @rpath)
+              # Get all dependencies that point to Homebrew paths
+              otool -L "$dylib" 2>/dev/null | grep -E "/usr/local|/opt/homebrew" | awk '{print $1}' | while read dep; do
+                depname=$(basename "$dep")
+                # Only fix if we have the library bundled
+                if [ -f "$WINE_LIB/$depname" ]; then
+                  install_name_tool -change "$dep" "@rpath/$depname" "$dylib" 2>/dev/null || true
+                  echo "  Fixed: $(basename $dylib) -> @rpath/$depname"
+                fi
+              done
             fi
           done
           echo "Library paths fixed"
