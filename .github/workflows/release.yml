@@ -213,7 +213,7 @@ jobs:
 
           echo "Downloading Wine ${WINE_VERSION} source from GitHub mirror..."
 
-          # Download from PodoSoju fork with SOJU_EXE_PATH patch
+          # Download from PodoSoju fork with SOJU_APP_* patches
           WINE_URL="https://github.com/PodoSoju/wine/archive/refs/heads/soju-patch.tar.gz"
           echo "Download URL: $WINE_URL"
 
@@ -247,9 +247,9 @@ jobs:
         run: |
           WINE_SOURCE_DIR="${{ steps.download.outputs.source_dir }}"
           echo "Using PodoSoju/wine fork with patches pre-applied"
-          echo "Checking for SOJU_EXE_PATH in cocoa_window.m..."
-          grep -n "SOJU_EXE_PATH" "$WINE_SOURCE_DIR/dlls/winemac.drv/cocoa_window.m" || {
-            echo "ERROR: SOJU_EXE_PATH patch not found!"
+          echo "Checking for SOJU_APP_PATH in cocoa_app.m..."
+          grep -n "SOJU_APP_PATH" "$WINE_SOURCE_DIR/dlls/winemac.drv/cocoa_app.m" || {
+            echo "ERROR: SOJU_APP_PATH patch not found!"
             exit 1
           }
           echo "Patch verified successfully"
@@ -332,20 +332,20 @@ jobs:
             exit 1
           fi
 
-          # Check for SOJU_EXE_PATH in binary
-          if strings "$WINEMAC_SO" | grep -q "SOJU_EXE_PATH"; then
-            echo "✓ SOJU_EXE_PATH patch verified in binary"
+          # Check for SOJU_APP_PATH in binary
+          if strings "$WINEMAC_SO" | grep -q "SOJU_APP_PATH"; then
+            echo "✓ SOJU_APP_PATH patch verified in binary"
           else
-            echo "ERROR: SOJU_EXE_PATH not found in built binary!"
+            echo "ERROR: SOJU_APP_PATH not found in built binary!"
             echo "This indicates the patch was not compiled into the binary."
             exit 1
           fi
 
-          # Check for SOJU_WORKSPACE_ID
-          if strings "$WINEMAC_SO" | grep -q "SOJU_WORKSPACE_ID"; then
-            echo "✓ SOJU_WORKSPACE_ID patch verified in binary"
+          # Check for SOJU_APP_NAME
+          if strings "$WINEMAC_SO" | grep -q "SOJU_APP_NAME"; then
+            echo "✓ SOJU_APP_NAME patch verified in binary"
           else
-            echo "WARNING: SOJU_WORKSPACE_ID not found (optional)"
+            echo "WARNING: SOJU_APP_NAME not found (optional)"
           fi
 
           echo "All required patches verified successfully"
