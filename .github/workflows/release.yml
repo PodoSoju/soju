@@ -466,6 +466,21 @@ jobs:
           done
           echo "Library paths fixed"
 
+          # Create symlinks for versioned libraries (e.g., libfreetype.6.dylib -> libfreetype.dylib)
+          echo "Creating library symlinks..."
+          cd "$WINE_LIB"
+          for lib in *.dylib; do
+            if [ -f "$lib" ]; then
+              # Extract base name (e.g., libfreetype from libfreetype.6.dylib)
+              base=$(echo "$lib" | sed -E 's/\.[0-9]+\.dylib$/.dylib/' | sed -E 's/\.[0-9]+\.[0-9]+\.dylib$/.dylib/')
+              if [ "$base" != "$lib" ] && [ ! -e "$base" ]; then
+                ln -sf "$lib" "$base"
+                echo "  $base -> $lib"
+              fi
+            fi
+          done
+          echo "Symlinks created"
+
       - name: Download DXMT
         id: dxmt
         run: |
