@@ -1,0 +1,99 @@
+From: PodoSoju <podo@soju.app>
+Subject: [PATCH] win32u: Load FreeType from relative path on macOS
+
+On macOS, load bundled FreeType library using relative path from
+the current .so file location instead of relying on system paths.
+
+---
+ dlls/win32u/freetype.c | 35 +++++++++++++++++++++++++++++++++++
+ dlls/dwrite/freetype.c | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 70 insertions(+)
+
+diff --git a/dlls/win32u/freetype.c b/dlls/win32u/freetype.c
+index 1234567..abcdefg 100644
+--- a/dlls/win32u/freetype.c
++++ b/dlls/win32u/freetype.c
+@@ -1453,9 +1453,44 @@ static BOOL init_freetype(void)
+
+ #endif
+
++#ifdef __APPLE__
++/* Helper function to get library path relative to current .so */
++static void *dlopen_relative(const char *libname)
++{
++    Dl_info info;
++    char path[PATH_MAX];
++    void *handle = NULL;
++
++    /* Get path of current shared object */
++    if (dladdr(init_freetype, &info) && info.dli_fname)
++    {
++        const char *dir = info.dli_fname;
++        const char *last_slash = strrchr(dir, '/');
++        if (last_slash)
++        {
++            size_t dir_len = last_slash - dir;
++            /* Path: .so is in lib/wine/x86_64-unix/, lib is in lib/ (3 levels up) */
++            snprintf(path, sizeof(path), "%.*s/../../../lib/%s", (int)dir_len, dir, libname);
++            handle = dlopen(path, RTLD_NOW);
++            if (handle) TRACE("Loaded %s from relative path: %s\n", libname, path);
++        }
++    }
++    return handle;
++}
++#endif
+
+ static BOOL init_freetype(void)
+ {
++#ifdef __APPLE__
++    /* Try loading from bundled location first */
++    ft_handle = dlopen_relative("libfreetype.6.dylib");
++    if (!ft_handle)
++#endif
+     ft_handle = dlopen(SONAME_LIBFREETYPE, RTLD_NOW);
+     if(!ft_handle) {
+         WINE_MESSAGE(
+diff --git a/dlls/dwrite/freetype.c b/dlls/dwrite/freetype.c
+index 1234567..abcdefg 100644
+--- a/dlls/dwrite/freetype.c
++++ b/dlls/dwrite/freetype.c
+@@ -116,9 +116,44 @@ static inline void ft_matrix_from_dwrite_matrix(const DWRITE_MATRIX *m, FT_Matri
+     ft_matrix->yy =  m->m22 * 0x10000;
+ }
+
++#ifdef __APPLE__
++/* Helper function to get library path relative to current .so */
++static void *dlopen_relative(const char *libname)
++{
++    Dl_info info;
++    char path[PATH_MAX];
++    void *handle = NULL;
++
++    /* Get path of current shared object */
++    if (dladdr(init_freetype_lib, &info) && info.dli_fname)
++    {
++        const char *dir = info.dli_fname;
++        const char *last_slash = strrchr(dir, '/');
++        if (last_slash)
++        {
++            size_t dir_len = last_slash - dir;
++            /* Path: .so is in lib/wine/x86_64-unix/, lib is in lib/ (3 levels up) */
++            snprintf(path, sizeof(path), "%.*s/../../../lib/%s", (int)dir_len, dir, libname);
++            handle = dlopen(path, RTLD_NOW);
++            if (handle) TRACE("Loaded %s from relative path: %s\n", libname, path);
++        }
++    }
++    return handle;
++}
++#endif
++
+ static BOOL init_freetype_lib(void)
+ {
++#ifdef __APPLE__
++    /* Try loading from bundled location first */
++    ft_handle = dlopen_relative("libfreetype.6.dylib");
++    if (!ft_handle)
++#endif
+     ft_handle = dlopen(SONAME_LIBFREETYPE, RTLD_NOW);
+     if (!ft_handle)
+     {
